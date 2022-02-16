@@ -12,8 +12,7 @@ class Envir:
         self.yel = (255,255,0)
 
         # map dimensions
-        self.height = dimensions[0]
-        self.width = dimensions[1]
+        self.height, self.width = dimensions
 
         # window settings
         pygame.display.set_caption('Differential Drive Robot')
@@ -56,7 +55,7 @@ class Envir:
 
 
 class Robot:
-    def __init__(self,startpos,robotImg,width):
+    def __init__(self,startpos,robotImg,width, follow=None):
         self.meter2pixel=3779.52
 
         # robot dims
@@ -67,8 +66,8 @@ class Robot:
         # initial speed at 0.01 m/s, convert to pixel/s
         self.vl=0.01*self.meter2pixel
         self.vr=0.01*self.meter2pixel
-        self.maxspeed=+0.02*self.meter2pixel
-        self.minspeed=-0.02*self.meter2pixel
+        self.maxspeed = +0.02*self.meter2pixel
+        self.minspeed = -0.02*self.meter2pixel
 
         # skin
         self.img=pygame.image.load(robotImg)
@@ -80,7 +79,7 @@ class Robot:
         self.rect=self.rotated.get_rect(center=(self.x,self.y))
 
 
-    def draw(self,map):
+    def draw_robot(self,map):
         map.blit(self.rotated,self.rect)
 
 
@@ -122,7 +121,10 @@ class Robot:
 
 if __name__ == '__main__':
 
-    # initialize
+    ##############
+    # initialize #
+    ##############
+
     pygame.init()
 
     # start position
@@ -140,12 +142,15 @@ if __name__ == '__main__':
     # make robot
     robot=Robot(start,
                 r'D:\all my files\documents\uvm\5_masters\hive\github_directory\HIVE\simple_sim\skin\tank_skin_80px_wide.png',
-                # r'D:\all my files\documents\uvm\5_masters\hive\github_directory\HIVE\simple_sim\skin\ddr.png',
                 80)
 
     dt = 0
     lasttime = 0
-    # simulation loop
+
+    ###################
+    # simulation loop #
+    ###################
+
     while running:
         # if quit button is pressed, stop simulation
         for event in pygame.event.get():
@@ -158,7 +163,7 @@ if __name__ == '__main__':
         pygame.display.update()
         environment.map.fill(environment.black)
         robot.move()
-        robot.draw(environment.map)
+        robot.draw_robot(environment.map)
         environment.draw_ref_frame((robot.x,robot.y),robot.theta)
         environment.draw_trail((robot.x,robot.y))
         environment.write_info(int(robot.vl),
