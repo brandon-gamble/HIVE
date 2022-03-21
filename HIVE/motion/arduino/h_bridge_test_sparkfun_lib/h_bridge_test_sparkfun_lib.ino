@@ -16,6 +16,34 @@ TB6612 SparkFun Library
 Development environment specifics:
 Developed on Arduino 1.6.4
 Developed with ROB-9457
+
+-------------------------------------
+-             wiring                -
+-------------------------------------
+1) Nano -> H-Bridge
+D3 -> AI1
+D4 -> AI2
+D5 -> PWMA
+D6 -> PWMB
+D7 -> BI1
+D8 -> BI2
+D9 -> STBY
+gnd -> gnd
+
+// 2) Nano -> pot
+// 5V -> pin1
+// A0/A1 -> pin2 (wiper, middle pin)
+// gnd -> pin3
+
+3) separate 5V source -> H-Bridge
+5v -> VM
+gnd -> gnd
+
+4) motors -> H-Bridge
+motorA -> A01/A02
+motorB -> B01/B02
+-------------------------------------
+
 ******************************************************************************/
 
 // This is the library for the TB6612 that contains the class Motor and all the
