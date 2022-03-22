@@ -1,0 +1,14 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Motor KEYWORD1 Motor
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+forward KEYWORD2
+reverse KEYWORD2
+brake KEYWORD2
+standby KEYWORD2
