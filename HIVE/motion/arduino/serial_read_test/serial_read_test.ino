@@ -4,76 +4,79 @@
 
 // H-Bridge pins
 #define AIN1 3
-#define BIN1 7
 #define AIN2 4
+#define BIN1 7
 #define BIN2 8
 #define PWMA 5
 #define PWMB 6
 #define STBY 9
-
-// command IDs and associated variables
-#define CMD_ID_MOTORS 0
-int m0_speed = 0;
-int m1_speed = 0;
-#define CMD_ID_TURRET 1
-int tur_rotation = 0;
-int tur_elevation = 0;
 
 // command time
 // in case something hangs, motors will never run for longer
 // than the CMD_TIME
 #define CMD_TIME 1000
 
+int m1_speed = 0;
+int m2_speed = 0;
+
 // these constants are used to allow you to make your motor configuration
 // line up with function names like forward.  Value can be 1 or -1
 const int offsetA = 1;
 const int offsetB = 1;
 
-Motor motor0 = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
-Motor motor1 = Motor(BIN1, BIN2, PWMB, offsetB, STBY);
-
+// Motor motor1 = Motor(AIN1, AIN2, PWMA, offsetA, STBY);
+// Motor motor2 = Motor(BIN1, BIN2, PWMB, offsetB, STBY);
 
 void setup() {
-	Serial.begin(9600);
-	Serial.setTimeout(10);
+    Serial.begin(9600);
+    Serial.setTimeout(10);
 
-	motor0.brake();
-	motor1.brake();
-	delay(1000);
+    pinMode(PWMA, OUTPUT);
+    pinMode(PWMB, OUTPUT);
+    pinMode(AIN1, OUTPUT);
+    pinMode(AIN2, OUTPUT);
+    pinMode(BIN1, OUTPUT);
+    pinMode(BIN2, OUTPUT);
+    pinMode(STBY, OUTPUT);
+
+    // write motor speeds to zero, then enable H-Bridge
+    analogWrite(PWMA, 0);
+    analogWrite(PWMB, 0);
+    digitalWrite(STBY, HIGH);
+
+    Serial.println("setup complete");
 }
 
 void loop() {
-	if (Serial.available() > 0) {
-		Serial.println("serial buffer > 0");
+    if (Serial.available() > 0) {
 
-		// parse command id, which informs how many variables will follow
-		int cmd_id = Serial.parseInt();
+        m1_speed = Serial.parseInt();
+        m2_speed = Serial.parseInt();
+        Serial.println(m1_speed);
+        Serial.println(m2_speed);
 
-//        // dump rest of buffer
-//        while (Serial.available() > 0) {
-//            char leftover = Serial.read();
-//            Serial.print(leftover);
-//        }
-//        Serial.println("");
+        if (m1_speed >= 0) {
+            // set forward
+            digitalWrite(AIN1, HIGH);
+            digitalWrite(AIN2, LOW);
+        } else {
+            digitalWrite(AIN1, LOW);
+            digitalWrite(AIN2, HIGH);
+            m1_speed = -m1_speed;
+        }
+        analogWrite(PWMA, m1_speed);
 
-		// send command to motors
-		switch (cmd_id) {
-			case CMD_ID_MOTORS:
-                // get motor speeds
-                m0_speed = Serial.parseInt();
-                m1_speed = Serial.parseInt();
 
-                // set motor speeds
-                motor0.drive(m0_speed, CMD_TIME);
-                motor1.drive(m1_speed, CMD_TIME);
-                
-            case CMD_ID_TURRET:
-                break;
-            default:
-                // if corrupt command is passed, stop tank
-                motor0.brake();
-                motor1.brake();
-        } // end switch
+        if (m2_speed >= 0) {
+            // set forward
+            digitalWrite(BIN1, HIGH);
+            digitalWrite(BIN2, LOW);
+        } else {
+            digitalWrite(BIN1, LOW);
+            digitalWrite(BIN2, HIGH);
+            m2_speed = -m2_speed;
+        }
+        analogWrite(PWMB, m2_speed);
 
-	} // end serial read
+    } // end serial read
 } // end loop
