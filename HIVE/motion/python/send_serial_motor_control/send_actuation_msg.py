@@ -37,8 +37,13 @@ if __name__ == '__main__':
     # 2) type "powershell"
     # 3) type "[System.IO.Ports.SerialPort]::getportnames()"
 
-    ser = initialize_com(9600);
+    '''
+    1 - manual type message to send
+    2 - auto send test messages
+    '''
+    case = 1
 
+    ser = initialize_com(9600);
     print('***************************')
     print('COMMANDS:')
     print('L, left')
@@ -49,6 +54,44 @@ if __name__ == '__main__':
     print('<L, 100>')
     print('***************************')
 
-    while True:
-        msg = input('actuator command:')
-        send_msg(ser,msg)
+    if case == 1 :
+        while True:
+            msg = input('actuator command:')
+            send_msg(ser,msg)
+
+    elif case == 2:
+        while True:
+            print('***************************')
+            print('* beginning test sequence *')
+            print('***************************')
+
+            send_msg(ser,'<L, 100>')
+            send_msg(ser,'<R, 100>')
+            print('both motors drive @ 100')
+            print('***************************')
+            time.sleep(5);
+
+            send_msg(ser,'xx<L, -100>')
+            send_msg(ser,'blah')
+            send_msg(ser,'<R, -100>xx')
+            print('both motors drive @ -100, ignoring leading, intermediate, and trailing serial buffer')
+            print('***************************')
+            time.sleep(5);
+
+            send_msg(ser,'<B, 1>')
+            print('both motors brake')
+            print('***************************')
+            time.sleep(5)
+
+            send_msg(ser,'<L, ')
+            send_msg(ser,' 200>')
+            send_msg(ser,'<R')
+            send_msg(ser,', -200>')
+            print('L @ 200, R @ -200, command split between sends')
+            print('***************************')
+            time.sleep(5);
+
+            send_msg(ser,'<S, 1>')
+            print('both motors on standby')
+            print('***************************')
+            time.sleep(5)
