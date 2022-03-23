@@ -48,6 +48,23 @@ void Motor::reverse(int speed)
     analogWrite(PWM, speed);
 }
 
+void Motor::drive(int speed)
+{
+    if (speed >= 0) {
+        // if speed is positive
+        // drive forward
+        digitalWrite(IN1, DRIVE_H);
+        digitalWrite(IN2, DRIVE_L);
+        analogWrite(PWM, speed);
+    } else {
+        // if speed is negative
+        // drive reverse (flip INx pins and sign of speed)
+        digitalWrite(IN1, DRIVE_L);
+        digitalWrite(IN2, DRIVE_H);
+        analogWrite(PWM, -speed);
+    }
+}
+
 void Motor::brake()
 {
     digitalWrite(IN1, HIGH);

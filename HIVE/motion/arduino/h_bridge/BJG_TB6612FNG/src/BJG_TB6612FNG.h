@@ -12,11 +12,6 @@ Brandon Gamble @ University of Vermont
 
 #include <Arduino.h>
 
-//used in some functions so you don't have to send a speed
-#define DEFAULTSPEED 100
-
-
-
 class Motor
 {
     public:
@@ -26,6 +21,7 @@ class Motor
         // functions
         void forward(int speed);
         void reverse(int speed);
+        void drive(int speed);
         void brake();
         void standby(bool status);
 
@@ -33,6 +29,5 @@ class Motor
         //variables for the 2 inputs, PWM input, polarity value, and the Standby pin
         int IN1, IN2, PWM, polarity, STBY, DRIVE_H, DRIVE_L;
 };
-
 
 #endif
