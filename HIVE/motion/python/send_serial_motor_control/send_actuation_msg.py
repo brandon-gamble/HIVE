@@ -41,9 +41,11 @@ if __name__ == '__main__':
     1 - manual type message to send
     2 - auto send test messages
     '''
-    case = 1
+    case = 2
 
-    ser = initialize_com(9600);
+    ser = initialize_com(38400);
+    print('waiting for connection....')
+    time.sleep(5)
     print('***************************')
     print('COMMANDS:')
     print('L, left')
@@ -61,9 +63,12 @@ if __name__ == '__main__':
 
     elif case == 2:
         while True:
-            print('***************************')
-            print('* beginning test sequence *')
-            print('***************************')
+            print('******************************************************')
+            print('*               beginning test sequence              *')
+            print('******************************************************')
+
+            send_msg(ser,'<S,0>')
+            print('motors enabled')
 
             send_msg(ser,'<L, 100>')
             send_msg(ser,'<R, 100>')
@@ -78,7 +83,7 @@ if __name__ == '__main__':
             print('***************************')
             time.sleep(5);
 
-            send_msg(ser,'<B, 1>')
+            send_msg(ser,'<B>')
             print('both motors brake')
             print('***************************')
             time.sleep(5)
@@ -90,6 +95,11 @@ if __name__ == '__main__':
             print('L @ 200, R @ -200, command split between sends')
             print('***************************')
             time.sleep(5);
+
+            send_msg(ser,'<L, -200> <R, -200>')
+            print('both @ -200, sent in one msg')
+            time.sleep(5);
+            print('***************************')
 
             send_msg(ser,'<S, 1>')
             print('both motors on standby')

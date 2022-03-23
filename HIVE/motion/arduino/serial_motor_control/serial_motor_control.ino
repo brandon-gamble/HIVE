@@ -37,7 +37,7 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 
 void setup(){
-    Serial.begin(9600);
+    Serial.begin(38400);
 
     // disable standby (turn on motors)
     tread_left.standby(LOW);
@@ -45,52 +45,23 @@ void setup(){
 }
 
 void loop() {
-    recvWithStartend_markers();
+    receive_message();
     if (new_data == true) {
         // temporary copy to preserve original data
-        // bc strtok() in parseData() replaces commas with \0
+        // bc strtok() in parse_msg() replaces commas with \0
         strcpy(temp_chars, chars_received);
-        showParsedData();
+        parse_msg();
+        //show_parsed_msg();
+        send_commands();
         new_data = false;
-
-        char act_id = char_from_msg;
-        int act_val = int_from_msg;
-
-        // process and send actuation commands
-        switch(act_id) {
-            case 'L':                                   // 'L' = left tread
-                // left tread
-                tread_left.drive(act_val);
-                break;
-            case 'R':                                   // 'R' = right tread
-                // right tread
-                tread_right.drive(act_val);
-                break;
-            case 'S':                                   // 'S' = standby
-                if (act_val == 0) {
-                    // standby = false so turn on
-                    tread_left.standby(LOW);
-                    tread_right.standby(LOW);
-                } else if (act_val == 1) {
-                    // standby = true so turn off
-                    tread_left.standby(HIGH);
-                    tread_right.standby(HIGH);
-                }
-            default:
-                // if unknown actuator id is received, brake and standby
-                tread_left.brake();
-                tread_right.brake();
-                tread_left.standby(HIGH);
-                tread_right.standby(HIGH);
-        }
     }
 }
 
-void recvWithStartend_markers() {
+void receive_message() {
     static boolean recv_in_progress = false;
     static byte buffer_index = 0;
     char start_marker = '<';
-    char end_marker = '<';
+    char end_marker = '>';
     char current_char;
 
     while (Serial.available() > 0 && new_data == false) {
@@ -117,20 +88,51 @@ void recvWithStartend_markers() {
     }
 }
 
-void parseData() {
+void parse_msg() {
     char * strtok_index; // index for strtok()
 
     strtok_index = strtok(temp_chars,","); // get string
     strcpy(char_from_msg, strtok_index);  // copy string to char_from_msg
 
     strtok_index = strtok(NULL, ",");     // continuing from previous indx, get int
-    int_from_msg = atio(strtok_index);   // convert to int
+    int_from_msg = atoi(strtok_index);   // convert to int
 }
 
-void showParsedData() {
+void show_parsed_msg() {
     Serial.print("act_id: ");
     Serial.print(char_from_msg);
-    Serial.print("\t")
+    Serial.print("\t");
     Serial.print("act_val: ");
     Serial.println(int_from_msg);
+}
+
+void send_commands() {
+    // process and send actuation commands
+    switch (char_from_msg[0]) {
+        case 'L':                                   // 'L' = left tread
+            // left tread
+            tread_left.drive(int_from_msg);
+            break;
+        case 'R':                                   // 'R' = right tread
+            // right tread
+            tread_right.drive(int_from_msg);
+            break;
+        case 'B':                                   // 'B' = brake
+            tread_left.brake();
+            tread_right.brake();
+        case 'S':                                   // 'S' = standby
+            if (int_from_msg == 0) {
+                // standby = false so turn on
+                tread_left.standby(LOW);
+                tread_right.standby(LOW);
+            } else if (int_from_msg == 1) {
+                // standby = true so turn off
+                tread_left.standby(HIGH);
+                tread_right.standby(HIGH);
+            }
+        default:
+            // if unknown actuator id is received, brake and standby
+            tread_left.brake();
+            tread_right.brake();
+    }
 }
