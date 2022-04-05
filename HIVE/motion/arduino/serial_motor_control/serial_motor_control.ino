@@ -29,8 +29,8 @@ boolean new_data = false;
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = 1;
-const int polarity_B = 1;
+const int polarity_A = -1;
+const int polarity_B = -1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
 Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
@@ -42,6 +42,9 @@ void setup(){
     // disable standby (turn on motors)
     tread_left.standby(LOW);
     tread_right.standby(LOW);
+
+    Serial.println("PROGRAM: serial_motor_control.ino");
+    Serial.println("UPLOAD: 2022-04-05");
 }
 
 void loop() {

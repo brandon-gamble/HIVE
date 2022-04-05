@@ -74,19 +74,19 @@ if __name__ == '__main__':
             send_msg(ser,'<R, 100>')
             print('both motors drive @ 100')
             print('***************************')
-            time.sleep(5);
+            time.sleep(3);
 
-            send_msg(ser,'xx<L, -100>')
+            send_msg(ser,'xx<L, -50>')
             send_msg(ser,'blah')
-            send_msg(ser,'<R, -100>xx')
-            print('both motors drive @ -100, ignoring leading, intermediate, and trailing serial buffer')
+            send_msg(ser,'<R, -50>xx')
+            print('both motors drive @ -50, ignoring leading, intermediate, and trailing serial buffer')
             print('***************************')
-            time.sleep(5);
+            time.sleep(3);
 
             send_msg(ser,'<B>')
             print('both motors brake')
             print('***************************')
-            time.sleep(5)
+            time.sleep(2)
 
             send_msg(ser,'<L, ')
             send_msg(ser,' 200>')
@@ -94,11 +94,11 @@ if __name__ == '__main__':
             send_msg(ser,', -200>')
             print('L @ 200, R @ -200, command split between sends')
             print('***************************')
-            time.sleep(5);
+            time.sleep(2);
 
             send_msg(ser,'<L, -200> <R, -200>')
             print('both @ -200, sent in one msg')
-            time.sleep(5);
+            time.sleep(2);
             print('***************************')
 
             send_msg(ser,'<S, 1>')
