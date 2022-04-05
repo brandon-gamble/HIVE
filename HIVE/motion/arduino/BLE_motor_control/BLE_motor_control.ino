@@ -27,13 +27,13 @@ SoftwareSerial BLE(RX, TX);
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 3
+#define AIN1 5
 #define AIN2 4
-#define PWMA 5
+#define PWMA 3
 #define BIN1 7
 #define BIN2 8
-#define PWMB 6
-#define STBY 9
+#define PWMB 9
+#define STBY 6
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
