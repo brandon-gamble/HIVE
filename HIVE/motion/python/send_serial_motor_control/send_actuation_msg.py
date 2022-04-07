@@ -41,7 +41,7 @@ if __name__ == '__main__':
     1 - manual type message to send
     2 - auto send test messages
     '''
-    case = 2
+    case = 1
 
     ser = initialize_com(38400);
     print('waiting for connection....')
