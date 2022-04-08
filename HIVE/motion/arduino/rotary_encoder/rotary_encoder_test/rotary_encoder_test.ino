@@ -7,7 +7,6 @@ gives RPM of enccoder, irrespective of direction
 
 // encoder outout A to arduino
 #define ENC_INA 3
-#define ENC_INB 5
 
 // encoder pulse count
 volatile long encoder_count = 0;
