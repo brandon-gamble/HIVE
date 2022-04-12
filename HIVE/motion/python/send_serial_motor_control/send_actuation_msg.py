@@ -14,6 +14,18 @@ def initialize_com(baud):
         for port in active_ports:
             print(' - ' + port.name)
         port_id = input('What port would you like to use? ')
+        # if using a PC, then our options would look something like "COM9",
+        # which we can pass directly to Serial()
+
+        # if using a pi, then port names look like "ttyUSB0" or "ttyACM0"
+        # but we can't pass this directly to Serial()
+        # first we need to append "/dev/" to our port_id
+        # because we want to pass "/dev/ttyUSB0" to Serial()
+
+        # therefore, we search for "tty" in port_id, which indicates we are using
+        # a raspi and need to append "/dev/" to our port_id
+        if "tty" in port_id:
+            port_id = "/dev/" + port_id
     print('Using port: ' + port_id)
 
     ser = Serial(port_id, baud, timeout=1)
