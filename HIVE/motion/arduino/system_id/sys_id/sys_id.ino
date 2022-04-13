@@ -11,17 +11,18 @@ TO ADD
 //////////////////////////////////
 #define ANALOG_IN_PIN A0
 
+int adc_val = 0;
+
 float divider_voltage = 0.0;
 float device_voltage = 0.0;
 float device_voltage_filt = 0.0;
-float tau = 64;
+float tau = 32;
 
 float R1 = 22000.0;
 float R2 = 22000.0;
 
 float ref_voltage = 4.096;
 
-int adc_val = 0;
 
 //////////////////////////////////
 //      MOTOR DRIVER SETUP      //
@@ -39,15 +40,15 @@ int adc_val = 0;
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = -1;
-const int polarity_B = -1;
+const int polarity_A = 1;
+const int polarity_B = 1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
 Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 long curr_motorTimer = 0;
 long prev_motorTimer = 0;
-int motorInterval = 10000;
+int motorInterval = 5000;
 
 int command_step = 0;
 int command_val = 0;
@@ -65,7 +66,7 @@ int command_val = 0;
 volatile long encoder_count = 0;
 
 // interval for measurements
-int sensorInterval = 100;
+int sensorInterval = 50;
 
 // time tracking
 long prev_sensorTimer = 0;
@@ -79,7 +80,7 @@ void setup() {
     Serial.println("PROGRAM: sys_id.ino");
     Serial.println("UPLOAD DATE: 2022 APR 13");
 
-    Serial.println("Command Value, RPM, ADC, Motor Voltage (filtered)");
+    Serial.println("Command Value, RPM, ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
 
     //////////////////////////////////
     //      VOLTMETER EXTERNAL      //
@@ -146,6 +147,8 @@ void loop(){
         Serial.print(", ");
         Serial.print(adc_val);
         Serial.print(", ");
+        Serial.print(device_voltage);
+        Serial.print(", ");
         Serial.print(device_voltage_filt);
         Serial.print(", ");
         Serial.println("");
@@ -169,7 +172,7 @@ void loop(){
         command_step ++;
 
         tread_left.drive(command_val);
-        tread_right.drive(-command_val);
+        tread_right.drive(command_val);
     } // end motor timer if loop
 
 } // end main loop
