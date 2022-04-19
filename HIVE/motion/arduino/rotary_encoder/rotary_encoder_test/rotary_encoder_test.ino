@@ -1,12 +1,12 @@
 /*******************************
-gives RPM of enccoder, irrespective of direction
+gives omega of enccoder, irrespective of direction
 *******************************/
 
 // pulses per rev of encoder
 #define ENC_REV_COUNT 360
 
 // encoder outout A to arduino
-#define ENC_INA 3
+#define ENC_INA 2
 
 // encoder pulse count
 volatile long encoder_count = 0;
@@ -18,8 +18,8 @@ int interval = 1000;
 long previousMillis = 0;
 long currentMillis = 0;
 
-// motor rpm
-int rpm = 0;
+// motor omega
+int omega = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -39,13 +39,13 @@ void loop() {
     if (currentMillis - previousMillis > interval) {
         previousMillis = currentMillis;
 
-        // calc rpm
-        rpm = (float)(encoder_count * 60 / ENC_REV_COUNT);
+        // calc omega
+        omega = (float)(encoder_count / interval / ENC_REV_COUNT * 2*3.14159);
 
         // update displace when motor is spinning
-        if (rpm > 0) {
-            Serial.print(rpm);
-            Serial.println(" RPM");
+        if (omega > 0) {
+            Serial.print(omega);
+            Serial.println(" rad/s");
         }
 
         // reset encoder count

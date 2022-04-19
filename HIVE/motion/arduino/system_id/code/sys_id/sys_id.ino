@@ -66,21 +66,24 @@ int command_val = 0;
 volatile long encoder_count = 0;
 
 // interval for measurements
-int sensorInterval = 50;
+int sensorInterval = 100;
 
 // time tracking
 long prev_sensorTimer = 0;
 long curr_sensorTimer = 0;
+long actual_interval = 0;
 
-// motor rpm
-int rpm = 0;
+// motor speed [rad/s]
+int omega = 0;
 
 void setup() {
     Serial.begin(9600);
     Serial.println("PROGRAM: sys_id.ino");
-    Serial.println("UPLOAD DATE: 2022 APR 13");
+    Serial.println("UPLOAD DATE: 2022 APR 19");
 
-    Serial.println("Command Value, RPM, ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
+    Serial.print("Sample time [ms]: ");
+    Serial.println(sensorInterval);
+    Serial.println("Time, Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
 
     //////////////////////////////////
     //      VOLTMETER EXTERNAL      //
@@ -112,14 +115,15 @@ void setup() {
 void loop(){
     curr_sensorTimer = millis();
     if (curr_sensorTimer - prev_sensorTimer > sensorInterval) {
+        actual_interval = curr_sensorTimer - prev_sensorTimer;
         prev_sensorTimer = curr_sensorTimer;
 
         /////////////////////////////
         //     ROTARY ENCODER      //
         /////////////////////////////
 
-        // calc rpm
-        rpm = (float)(encoder_count * 60 / ENC_REV_COUNT);
+        // calc motor speed [rad/s]
+        omega = (float)(encoder_count / actual_interval / ENC_REV_COUNT * 2*3.14159);
 
         // reset encoder count
         encoder_count = 0;
@@ -143,7 +147,7 @@ void loop(){
         ////////////////
         Serial.print(command_val);
         Serial.print(", ");
-        Serial.print(rpm);
+        Serial.print(omega);
         Serial.print(", ");
         Serial.print(adc_val);
         Serial.print(", ");
