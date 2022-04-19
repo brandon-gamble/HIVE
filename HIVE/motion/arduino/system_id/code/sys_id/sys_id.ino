@@ -16,7 +16,7 @@ int adc_val = 0;
 float divider_voltage = 0.0;
 float device_voltage = 0.0;
 float device_voltage_filt = 0.0;
-float tau = 32;
+float tau = 16;
 
 float R1 = 22000.0;
 float R2 = 22000.0;
@@ -48,10 +48,11 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 long curr_motorTimer = 0;
 long prev_motorTimer = 0;
-int motorInterval = 5000;
+int motorInterval = 8000;
 
 int command_step = 0;
-int command_val = 0;
+int prev_command_val = 0;
+int curr_command_val = 0;
 
 //////////////////////////////////
 //     ROTARY ENCODER SETUP     //
@@ -145,7 +146,7 @@ void loop(){
         ////////////////
         // PRINT DATA //
         ////////////////
-        Serial.print(command_val);
+        Serial.print(curr_command_val);
         Serial.print(", ");
         Serial.print(omega);
         Serial.print(", ");
@@ -165,18 +166,22 @@ void loop(){
         prev_motorTimer = curr_motorTimer;
 
         if (command_step == 0) {
-            command_val = 50;
+            curr_command_val = 50;
         } else if (command_step == 1) {
-            command_val = 100;
+            curr_command_val = 100;
         } else if (command_step == 2) {
-            command_val = 200;
-        } else if (command_step == 3) {
-          command_val = 0;
+            curr_command_val = 200;
+        } else {
+          curr_command_val = 0;
         }
         command_step ++;
 
-        tread_left.drive(command_val);
-        tread_right.drive(command_val);
+        // if command val has changed, write to motor
+        if (curr_command_val != prev_command_val) {
+            prev_command_val = curr_command_val;
+            tread_left.drive(curr_command_val);
+            tread_right.drive(curr_command_val);
+        }
     } // end motor timer if loop
 
 } // end main loop
