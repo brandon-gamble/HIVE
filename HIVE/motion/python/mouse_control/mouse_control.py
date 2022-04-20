@@ -60,8 +60,20 @@ def callback(e):
     # print("Pointer is currently at %d, %d" %(px,py))
     # print("s: %d w: %d" % (s,w))
     print("m_l: %d m_r: %d" % (m_l,m_r))
+    return
 
+def disable(e):
+    commander.send_msg(ser,"<S,1>")
+    print("MOTORS DISABLED")
+    return
 
+def enable(e):
+    commander.send_msg(ser,"<S,0>")
+    print("MOTORS ENABLED")
+    return
 
 win.bind('<Motion>',callback)
+win.bind('<Button-1>',enable)
+win.bind('<Button-3>',disable)
+#win.pack()
 win.mainloop()
