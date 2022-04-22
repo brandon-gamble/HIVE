@@ -180,7 +180,7 @@ void loop(){
         if (curr_command_val != prev_command_val) {
             prev_command_val = curr_command_val;
             tread_left.drive(curr_command_val);
-            tread_right.drive(curr_command_val);
+//            tread_right.drive(curr_command_val);
         }
     } // end motor timer if loop
 
