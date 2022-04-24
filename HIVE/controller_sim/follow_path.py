@@ -1,3 +1,4 @@
+import path_functions as path_fn
 import numpy as np
 
 class HIVE:
@@ -48,7 +49,7 @@ class HIVE:
         self.omega_l_measured = 0
         self.omega_r_measured = 0
 
-    def get_normal_point(self,P,A,B):
+    def XXget_normal_point(self,P,A,B):
         # find point on line segment closest to a given point
         # P is point
         # A is starting point of segment
@@ -75,7 +76,7 @@ class HIVE:
 
         return normal_point
 
-    def find_target(self,point,path,proj_dist):
+    def XXfind_target(self,point,path,proj_dist):
         N_pts = max(path.shape)
         N_seg = N_pts - 1
 
@@ -83,7 +84,7 @@ class HIVE:
         normal_norms = np.zeros([N_seg])    # length of normal vecs^
 
         for k in range(N_seg):
-            normal_vecs[:,k] = self.get_normal_point(point,path[:,k],path[:,k+1]) - point
+            normal_vecs[:,k] = self.XXget_normal_point(point,path[:,k],path[:,k+1]) - point
             normal_norms[k] = np.linalg.norm(normal_vecs[:,k])
 
         index = np.argmin(normal_norms)     # index of smallest norm
@@ -145,15 +146,15 @@ if __name__ == "__main__":
         P = np.array([2,2])
         A = np.array([-1,1])
         B = np.array([3,1])
-        print(my_hive.get_normal_point(P,A,B))
+        print(path_fn.get_normal_point(P,A,B))
 
         P = np.array([4,2])
-        print(my_hive.get_normal_point(P,A,B))
+        print(path_fn.get_normal_point(P,A,B))
 
         P = np.array([2,2])
         A = np.array([-1,1])
         B = np.array([5,-5])
-        print(my_hive.get_normal_point(P,A,B))
+        print(path_fn.get_normal_point(P,A,B))
 
     elif test == 2:
         points =     np.array([[4,2], [3,8],   [10,5],    [11,1]]).T
@@ -165,14 +166,13 @@ if __name__ == "__main__":
 
         for k in range(max(points.shape)):
             point = points[:,k]
-            t,c = my_hive.find_target(point,path,proj_dist)
+            t,c = path_fn.find_target(point,path,proj_dist)
+            # t,c = my_hive.XXfind_target(point,path,proj_dist)
             print("P: %.1f,%.1f \t T: %.1f,%.1f \t eT: %.1f,%.1f \t C: %.1f,%.1f \t eC: %.1f,%.1f" %
                 (point[0],point[1],
                 t[0],t[1],expected_T[0,k],expected_T[1,k],
                 c[0],c[1],expected_C[0,k],expected_C[1,k]))
 
-    elif test == 3:
-
-    elif test == 4:
-
-    elif test == 5:
+    # elif test == 3:
+    # elif test == 4:
+    # elif test == 5:
