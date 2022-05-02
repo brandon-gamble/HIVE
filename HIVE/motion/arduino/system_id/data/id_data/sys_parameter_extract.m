@@ -133,7 +133,7 @@ ylabel('omega [rad/s]')
 xlabel('time [s]')
 title('model step response - right motor')
 
-%% system id - cmd/omega
+%% system id - cmd/omega (1p/0z)
 tf_L_cmd = tf(0.166, [1 13.35]);
 tf_R_cmd = tf(0.1777, [1 14.39]);
 
@@ -148,7 +148,7 @@ opt = stepDataOptions('StepAmplitude',50);
 step(tf_R_cmd,opt)
 title('step R, amp=50 (cmd/omega)')
 
-%% model comparison (cmd/omega)
+%% model comparison (cmd/omega) (1p/0z)
 figure
 % LEFT MOTOR 
 subplot(1,2,1)
