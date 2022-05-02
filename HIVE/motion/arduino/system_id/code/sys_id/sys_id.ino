@@ -84,7 +84,7 @@ void setup() {
 
     Serial.print("Sample time [ms]: ");
     Serial.println(sensorInterval);
-    Serial.println("Time, Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
+    Serial.println("Timestamp, Time elapsed [s], Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
 
     //////////////////////////////////
     //      VOLTMETER EXTERNAL      //
@@ -146,6 +146,8 @@ void loop(){
         ////////////////
         // PRINT DATA //
         ////////////////
+        Serial.print(curr_sensorTimer);
+        Serial.print(", ");
         Serial.print(curr_command_val);
         Serial.print(", ");
         Serial.print(omega);
