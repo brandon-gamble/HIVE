@@ -1,2 +1,6 @@
+# matlab autosave
 *.asv
+
+# python cache files
 *.pyc
+__pycache__/
