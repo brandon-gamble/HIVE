@@ -6,7 +6,7 @@ TO DO
     - controller gains
     - sys id variables of motor
         -> MAKE IT CLEAR WHERE THESE VALUES PLUG IN
-
+- fix s_max calculation
 
 '''
 
@@ -16,24 +16,27 @@ import matplotlib.patches as patches
 from matplotlib import animation
 
 class HIVE:
-    def __init__(self,num_timesteps,half_width,half_length,wheel_radius,startpos):
+    def __init__(self,num_timesteps, startpos,
+                    half_width, half_length, wheel_radius,
+                    motor_l_params, motor_r_params):
         self.meter2pixel = 3779.52
         self.rpm2radsec = 0.10472
 
         #########################
         # motor characteristics #
         #########################
-        self.max_speed = 2 # [m/s]
+        # equation is form omega/u = k/(Js+b)
+        self.J_l = motor_l_params[0]
+        self.k_l = motor_l_params[1]
+        self.b_l = motor_l_params[2]
+        self.omega_max_l = motor_l_params[3] # [rad/s]
+        self.omega_min_l = motor_l_params[4] # [rad/s]
 
-        self.J_l = 0.1
-        self.k_l = 2
-        self.b_l = 1
-        self.omega_max_l = []
-
-        self.J_r = 0.1
-        self.k_r = 2
-        self.b_r = 1
-        self.omega_max_r = []
+        self.J_r = motor_r_params[0]
+        self.k_r = motor_r_params[1]
+        self.b_r = motor_r_params[2]
+        self.omega_max_r = motor_r_params[3] # [rad/s]
+        self.omega_min_r = motor_r_params[4] # [rad/s]
 
         ################################
         #  dims, pos/pose, velocities  #
@@ -57,9 +60,8 @@ class HIVE:
             # total robot speed
         self.s = np.zeros(num_timesteps)
 
-        # rpm saturation
-        self.max_omega = 20
-        self.min_omega = -15
+        # max speed by average max wheel omega
+        self.s_max = (self.omega_max_l+self.omega_max_r)/2*self.R # [m/s]
 
         ################################
         #         initialize           #
@@ -71,6 +73,10 @@ class HIVE:
         # to keep track of targets and closest point
         self.log_targ = np.zeros([2,num_timesteps])
         self.log_closest = np.zeros([2,num_timesteps])
+
+        # keep track of control actuations
+        self.log_u_l = np.zeros(num_timesteps)
+        self.log_u_r = np.zeros(num_timesteps)
 
         # sensors
         self.x_measured = 0
@@ -127,7 +133,7 @@ class HIVE:
 
                 # velocity vector and desired speed/heading
                 u = np.array([[targ_x - self.x_measured],[targ_y - self.y_measured]])
-                s_des = min(np.linalg.norm(u),self.max_speed)
+                s_des = min(np.linalg.norm(u),self.s_max)
                 phi_des = np.arctan2(u[1],u[0])
 
                 # error in heading
@@ -139,8 +145,11 @@ class HIVE:
                 omega_des = error_phi*kp_heading
 
                 # motor setpoints
-                omega_r_des = (s_des + omega_des*self.W)/self.R
                 omega_l_des = (s_des - omega_des*self.W)/self.R
+                omega_r_des = (s_des + omega_des*self.W)/self.R
+                # saturation of motor setpoints
+                omega_l_des = max(self.omega_min_l,min(self.omega_max_l,omega_l_des))
+                omega_r_des = max(self.omega_min_r,min(self.omega_max_r,omega_r_des))
 
                 # motor left control
                 error_l = omega_l_des - self.omega_l_measured
@@ -151,6 +160,10 @@ class HIVE:
                 error_r = omega_r_des - self.omega_r_measured
                 u_integral_r = u_integral_r + error_r*T_cont
                 u_r = kp_r*error_r + ki_r*u_integral_r
+
+                # saturation of actuation
+                u_l = max(-255,min(255,u_l))
+                u_r = max(-255,min(255,u_r))
 
 
             # end of controller loop
@@ -172,6 +185,9 @@ class HIVE:
 
             self.log_closest[0,k] = self.closest[0]
             self.log_closest[1,k] = self.closest[1]
+
+            self.log_u_l[k] = u_l
+            self.log_u_r[k] = u_r
 
         return
 
@@ -303,8 +319,9 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     #   1   mimic HW4pathFollowing_tight_corner from autonomy
-    #   2   same path as 1 but with tank dims
-    test = 2
+    #   2   dif path, tank dims
+    #   3   tank dims and tank dif eq
+    test = 1
 
     if test == 1:
 
@@ -322,7 +339,11 @@ if __name__ == "__main__":
         hW=0.1
         hL=0.1
         R=0.1
-        my_hive = HIVE(n,hW,hL,R,start)
+        my_hive = HIVE(num_timesteps=n, startpos=start,
+                        half_width=hW, half_length=hL, wheel_radius=R,
+                        motor_l_params=[0.1,2,1,999,-999],
+                        motor_r_params=[0.1,2,1,999,-999])
+        my_hive.s_max = 2
 
         waypoints = np.array([[2,2],[3,6], [7,7], [7,0], [-2,-2],[3,-2]]).T
 
@@ -333,11 +354,12 @@ if __name__ == "__main__":
                                 PI_right=[1/3, 10/3],
                                 proj_dist=2)
 
+
         # plt.scatter(waypoints[0,:], waypoints[1,:])
         # plt.plot(my_hive.x,my_hive.y)
 
         # plot waypoints and path
-        plt.subplot(1,3,1)
+        plt.subplot(2,2,1)
         plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
         plt.scatter(start[0],start[1],marker='x',label='start')
         plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
@@ -345,8 +367,15 @@ if __name__ == "__main__":
         plt.title('HIVE path')
         plt.legend()
 
+        # plot acutations
+        plt.subplot(2,2,2)
+        plt.plot(t,my_hive.log_u_l,label='u_l')
+        plt.plot(t,my_hive.log_u_r,label='u_r')
+        plt.title('actuator commands')
+        plt.legend()
+
         # plot states x,y,phi thru time
-        plt.subplot(1,3,2)
+        plt.subplot(2,2,3)
         plt.plot(t,my_hive.x,label='x')
         plt.plot(t,my_hive.y,label='y')
         plt.plot(t,my_hive.phi,label='phi')
@@ -354,7 +383,7 @@ if __name__ == "__main__":
         plt.legend()
 
         # plot states omega and s thru time
-        plt.subplot(1,3,3)
+        plt.subplot(2,2,4)
         plt.plot(t,my_hive.omega,label='omega')
         # plt.plot(t,my_hive.omega_l,label='omega_l')
         # plt.plot(t,my_hive.omega_r,label='omega_r')
@@ -391,7 +420,12 @@ if __name__ == "__main__":
         hW=0.079
         hL=0.174
         R =0.022
-        my_hive = HIVE(n,hW,hL,R,start)
+        my_hive = HIVE(num_timesteps=n, startpos=start,
+                        half_width=hW, half_length=hL, wheel_radius=R,
+                        motor_l_params=[0.1,2,1,999,-999],
+                        motor_r_params=[0.1,2,1,999,-999])
+
+        my_hive.s_max = 1
 
         waypoints = np.array([[0.1,0.05],[0.2,0.05],[0.4,0.025],[0.6,0],[0.6,0.5],[0.5,0.6],[0.3,0.5],[0,0.2]]).T
 
@@ -402,11 +436,12 @@ if __name__ == "__main__":
                                 PI_right=[1/3, 10/3],
                                 proj_dist=0.1)
 
+
         # plt.scatter(waypoints[0,:], waypoints[1,:])
         # plt.plot(my_hive.x,my_hive.y)
 
         # plot waypoints and path
-        plt.subplot(1,3,1)
+        plt.subplot(2,2,1)
         plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
         plt.scatter(start[0],start[1],marker='x',label='start')
         plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
@@ -414,8 +449,15 @@ if __name__ == "__main__":
         plt.title('HIVE path')
         plt.legend()
 
+        # plot acutations
+        plt.subplot(2,2,2)
+        plt.plot(t,my_hive.log_u_l,label='u_l')
+        plt.plot(t,my_hive.log_u_r,label='u_r')
+        plt.title('actuator commands')
+        plt.legend()
+
         # plot states x,y,phi thru time
-        plt.subplot(1,3,2)
+        plt.subplot(2,2,3)
         plt.plot(t,my_hive.x,label='x')
         plt.plot(t,my_hive.y,label='y')
         plt.plot(t,my_hive.phi,label='phi')
@@ -423,7 +465,7 @@ if __name__ == "__main__":
         plt.legend()
 
         # plot states omega and s thru time
-        plt.subplot(1,3,3)
+        plt.subplot(2,2,4)
         plt.plot(t,my_hive.omega,label='omega')
         # plt.plot(t,my_hive.omega_l,label='omega_l')
         # plt.plot(t,my_hive.omega_r,label='omega_r')
@@ -443,7 +485,82 @@ if __name__ == "__main__":
                         # save=True,
                         # ghost=True,
                         # draw=True)
+    elif test == 3:
+        # time step of physics and controller
+        T_phys = 0.001
+        T_cont = 0.01
+        ratio = T_cont/T_phys
 
-    # elif test == 3:
+        # time vector for simulation
+        max_time = 30
+        t = np.arange(0,max_time,T_phys)
+        n = len(t)
+
+        start = [0,0]
+        hW=0.079
+        hL=0.174
+        R =0.022
+        my_hive = HIVE(num_timesteps=n, startpos=start,
+                        half_width=hW, half_length=hL, wheel_radius=R,
+                        motor_l_params=[1, 0.166, 13.35, 3, -2.5],
+                        motor_r_params=[1, 0.1777,14.39, 3, -2.5])
+        my_hive.s_max = 2
+
+        waypoints = np.array([[0.1,0.05],[0.2,0.05],[0.4,0.025],[0.6,0],[0.6,0.5],[0.5,0.6],[0.3,0.5],[0,0.2]]).T
+
+        my_hive.simulate_follow(waypoints,
+                                n,T_phys,T_cont,
+                                kp_heading=5,
+                                PI_left=[420, 9620],
+                                PI_right=[360, 9770],
+                                proj_dist=0.1)
+
+
+
+        # plot waypoints and path
+        plt.subplot(2,2,1)
+        plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
+        plt.scatter(start[0],start[1],marker='x',label='start')
+        plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
+        plt.plot(my_hive.x,my_hive.y,label='HIVE path')
+        plt.title('HIVE path')
+        plt.legend()
+
+        # plot acutations
+        plt.subplot(2,2,2)
+        plt.plot(t,my_hive.log_u_l,label='u_l')
+        plt.plot(t,my_hive.log_u_r,label='u_r')
+        plt.title('actuator commands')
+        plt.legend()
+
+        # plot states x,y,phi thru time
+        plt.subplot(2,2,3)
+        plt.plot(t,my_hive.x,label='x')
+        plt.plot(t,my_hive.y,label='y')
+        plt.plot(t,my_hive.phi,label='phi')
+        plt.title('positional states')
+        plt.legend()
+
+        # plot states omega and s thru time
+        plt.subplot(2,2,4)
+        plt.plot(t,my_hive.omega,label='omega')
+        # plt.plot(t,my_hive.omega_l,label='omega_l')
+        # plt.plot(t,my_hive.omega_r,label='omega_r')
+        plt.plot(t,my_hive.s,label='s')
+        plt.title('d/dt states')
+        plt.legend()
+
+        plt.show()
+
+        my_xy = np.array([my_hive.x,my_hive.y])
+        animatePath(xy_array=my_xy, phi=my_hive.phi,
+                        waypoints=waypoints, obstacle_list=[],
+                        map_x=[-.2,.8], map_y=[-.2,.8],
+                        pt_skip=20)
+                        # frameDelay=1,
+                        # width = 2,
+                        # save=True,
+                        # ghost=True,
+                        # draw=True)
     # elif test == 4:
     # elif test == 5:
