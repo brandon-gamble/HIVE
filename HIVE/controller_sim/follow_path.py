@@ -12,9 +12,11 @@ TO DO
 
 import path_functions as path_fn
 import numpy as np
+import matplotlib.patches as patches
+from matplotlib import animation
 
 class HIVE:
-    def __init__(self,num_timesteps,L,R,startpos):
+    def __init__(self,num_timesteps,half_width,half_length,wheel_radius,startpos):
         self.meter2pixel = 3779.52
         self.rpm2radsec = 0.10472
 
@@ -37,8 +39,9 @@ class HIVE:
         #  dims, pos/pose, velocities  #
         ################################
         # robot dims
-        self.L = L # half_width
-        self.R = R # wheel_radius
+        self.W = half_width # half_width
+        self.L = half_length # half_length
+        self.R = wheel_radius # wheel_radius
 
         # position/orientation: x,y,heading
         self.x = np.zeros(num_timesteps)
@@ -106,7 +109,7 @@ class HIVE:
             ##############
             # evaluate controller every time k is a multiple of the
             # ratio of time scales of physics and controller
-            if (k+1) % ratio == 0:
+            if k % ratio == 0:
                 #######################################
                 # pretend to take sensor measurements #
                 #######################################
@@ -136,8 +139,8 @@ class HIVE:
                 omega_des = error_phi*kp_heading
 
                 # motor setpoints
-                omega_r_des = (s_des + omega_des*self.L)/self.R
-                omega_l_des = (s_des - omega_des*self.L)/self.R
+                omega_r_des = (s_des + omega_des*self.W)/self.R
+                omega_l_des = (s_des - omega_des*self.W)/self.R
 
                 # motor left control
                 error_l = omega_l_des - self.omega_l_measured
@@ -159,7 +162,7 @@ class HIVE:
             self.omega_r[k+1] = self.omega_r[k] + T_phys/self.J_r*(self.k_r*u_r-self.b_r*self.omega_r[k])
 
             self.s[k+1] = (self.omega_l[k+1]+self.omega_r[k+1])*self.R/2
-            self.omega[k+1] = (self.omega_r[k+1]-self.omega_l[k+1])*self.R/2/self.L
+            self.omega[k+1] = (self.omega_r[k+1]-self.omega_l[k+1])*self.R/2/self.W
             self.phi[k+1] = self.phi[k] + self.omega[k]*T_phys
             self.x[k+1] = self.x[k] + self.s[k]*np.cos(self.phi[k])*T_phys
             self.y[k+1] = self.y[k] + self.s[k]*np.sin(self.phi[k])*T_phys
@@ -172,13 +175,136 @@ class HIVE:
 
         return
 
+def get_hive_vertices(half_length,half_width,x,y,phi):
+    L = half_length
+    W = half_width
+
+    LW = np.array([[L, 0],[0, W]])
+    signs = np.array([[0,1,1,-1,-1,1,1],[0,0,1,1,-1,-1,0]])
+
+    # vertices of robot centered at origin with phi=0
+    # vertices are center, front center, then the four corners (CCW),
+    # then front center repeated again
+    vertices = np.dot(LW,signs)
+
+    # rotate by phi
+    rotmat = np.array([[np.cos(phi),-np.sin(phi)],[np.sin(phi),np.cos(phi)]])
+    vertices = np.dot(rotmat,vertices)
+
+    # shift to xy
+    vertices[0,:] = vertices[0,:] + x
+    vertices[1,:] = vertices[1,:] + y
+
+    return vertices
+
+def animatePath(xy_array, phi, waypoints, obstacle_list, map_x, map_y,
+                    frameDelay=1,
+                    pt_skip = 10,
+                    width = 2,
+                    save=False,
+                    ghost=True,
+                    draw=True):
+    '''
+    input:	xy_array  [2xN]
+            phi       [1xN]
+            waypoints [2xN]
+
+    output:	animation of drawing
+
+    Xargs:
+        width:  float   line width in plot
+        save:   BOOL    true -> save mp4
+        draw:   BOOL    true -> enable "pen" trace
+        ghost:  BOOL    true -> show full path underlay
+    '''
+
+    numFrames = int(max(xy_array.shape)/pt_skip)
+
+    fig = plt.figure()
+    fig.set_dpi(100)
+    fig.set_size_inches(7, 6.5)
+
+    minx = map_x[0]
+    maxx = map_x[1]
+
+    miny = map_y[0]
+    maxy = map_y[1]
+
+    ax = plt.axes(xlim=(minx, maxx),
+                    ylim=(miny, maxy))
+
+    # vertices at t=0
+    vertices = get_hive_vertices(my_hive.L,my_hive.W,
+                                my_hive.x[0],my_hive.y[0],my_hive.phi[0])
+    vertices = vertices.T
+    # vertices = np.array([
+    #     # [self.A[0],self.A[1]],
+    #     # [B[0,0], B[0,1]],
+    #     [xy_array[0,0], xy_array[1,0]]
+    # ])
+
+    patch = patches.Polygon(vertices, edgecolor=[100/255,0,1], linewidth=width, closed=False, fill=False)
+
+    def init():
+        ax.add_line(patch)
+
+        if ghost == True:
+            # plot full path, which will be drawn on top of
+            plt.plot(xy_array[0,:],xy_array[1,:],linewidth=1)
+
+        for obs in obstacle_list:
+            self.plot_poly(obs,'r')
+        # self.plot_workspace()
+
+        return patch,
+
+    def animate(i):
+        vertices = get_hive_vertices(my_hive.L,my_hive.W,
+                                    my_hive.x[i*pt_skip],my_hive.y[i*pt_skip],my_hive.phi[i*pt_skip])
+        vertices=vertices.T
+        # vertices = np.array([
+        #     # self.A,
+        #     # B[i],
+        #     xy_array.T[i]
+        # ])
+
+        trace = xy_array.T[0:i*pt_skip]
+        trace = trace[::-1]
+
+        vertices = np.concatenate((vertices,trace))
+
+        patch.set_xy(vertices)
+
+        return patch,
+
+    if draw == True:
+        anim = animation.FuncAnimation(fig, animate,
+                                        init_func = init,
+                                        frames = numFrames,
+                                        interval = frameDelay,
+                                        blit = True)
+    else:
+        plt.plot(xy_array[0,:],xy_array[1,:])
+
+    if save == True:
+        # Set up formatting for the movie files
+        # Writer = animation.writers['ffmpeg']
+        # writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        # writer = animation.FFMpegWriter(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+        # anim.save("movie.mp4", writer=writer)
+        p = 0
+
+    plt.show()
+
+    return
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
     #   1   mimic HW4pathFollowing_tight_corner from autonomy
-    #   2
-    test = 1
+    #   2   same path as 1 but with tank dims
+    test = 2
 
     if test == 1:
 
@@ -192,9 +318,13 @@ if __name__ == "__main__":
         t = np.arange(0,max_time,T_phys)
         n = len(t)
 
-        my_hive = HIVE(n,0.1,0.1,[1,4])
+        start = [1,4]
+        hW=0.1
+        hL=0.1
+        R=0.1
+        my_hive = HIVE(n,hW,hL,R,start)
 
-        waypoints = np.array([[2,2], [3,6], [7,7], [7,0], [-2,-2],[3,-2]]).T
+        waypoints = np.array([[2,2],[3,6], [7,7], [7,0], [-2,-2],[3,-2]]).T
 
         my_hive.simulate_follow(waypoints,
                                 n,T_phys,T_cont,
@@ -208,7 +338,9 @@ if __name__ == "__main__":
 
         # plot waypoints and path
         plt.subplot(1,3,1)
-        plt.scatter(waypoints[0,:],waypoints[1,:],label='waypoints')
+        plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
+        plt.scatter(start[0],start[1],marker='x',label='start')
+        plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
         plt.plot(my_hive.x,my_hive.y,label='HIVE path')
         plt.title('HIVE path')
         plt.legend()
@@ -218,6 +350,7 @@ if __name__ == "__main__":
         plt.plot(t,my_hive.x,label='x')
         plt.plot(t,my_hive.y,label='y')
         plt.plot(t,my_hive.phi,label='phi')
+        plt.title('positional states')
         plt.legend()
 
         # plot states omega and s thru time
@@ -226,15 +359,90 @@ if __name__ == "__main__":
         # plt.plot(t,my_hive.omega_l,label='omega_l')
         # plt.plot(t,my_hive.omega_r,label='omega_r')
         plt.plot(t,my_hive.s,label='s')
+        plt.title('d/dt states')
         plt.legend()
 
         plt.show()
 
-
+        my_xy = np.array([my_hive.x,my_hive.y])
+        animatePath(xy_array=my_xy, phi=my_hive.phi,
+                        waypoints=waypoints, obstacle_list=[],
+                        map_x=[-4,8], map_y=[-4,8])
+                        # pt_skip=10,
+                        # frameDelay=1,
+                        # width = 2,
+                        # save=True,
+                        # ghost=True,
+                        # draw=True)
 
 
     elif test == 2:
-        a = []
+        # time step of physics and controller
+        T_phys = 0.001
+        T_cont = 0.01
+        ratio = T_cont/T_phys
+
+        # time vector for simulation
+        max_time = 30
+        t = np.arange(0,max_time,T_phys)
+        n = len(t)
+
+        start = [0,0]
+        hW=0.079
+        hL=0.174
+        R =0.022
+        my_hive = HIVE(n,hW,hL,R,start)
+
+        waypoints = np.array([[0.1,0.05],[0.2,0.05],[0.4,0.025],[0.6,0],[0.6,0.5],[0.5,0.6],[0.3,0.5],[0,0.2]]).T
+
+        my_hive.simulate_follow(waypoints,
+                                n,T_phys,T_cont,
+                                kp_heading=2,
+                                PI_left=[1/3, 10/3],
+                                PI_right=[1/3, 10/3],
+                                proj_dist=0.1)
+
+        # plt.scatter(waypoints[0,:], waypoints[1,:])
+        # plt.plot(my_hive.x,my_hive.y)
+
+        # plot waypoints and path
+        plt.subplot(1,3,1)
+        plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
+        plt.scatter(start[0],start[1],marker='x',label='start')
+        plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
+        plt.plot(my_hive.x,my_hive.y,label='HIVE path')
+        plt.title('HIVE path')
+        plt.legend()
+
+        # plot states x,y,phi thru time
+        plt.subplot(1,3,2)
+        plt.plot(t,my_hive.x,label='x')
+        plt.plot(t,my_hive.y,label='y')
+        plt.plot(t,my_hive.phi,label='phi')
+        plt.title('positional states')
+        plt.legend()
+
+        # plot states omega and s thru time
+        plt.subplot(1,3,3)
+        plt.plot(t,my_hive.omega,label='omega')
+        # plt.plot(t,my_hive.omega_l,label='omega_l')
+        # plt.plot(t,my_hive.omega_r,label='omega_r')
+        plt.plot(t,my_hive.s,label='s')
+        plt.title('d/dt states')
+        plt.legend()
+
+        plt.show()
+
+        my_xy = np.array([my_hive.x,my_hive.y])
+        animatePath(xy_array=my_xy, phi=my_hive.phi,
+                        waypoints=waypoints, obstacle_list=[],
+                        map_x=[-.2,.8], map_y=[-.2,.8],
+                        pt_skip=20)
+                        # frameDelay=1,
+                        # width = 2,
+                        # save=True,
+                        # ghost=True,
+                        # draw=True)
 
     # elif test == 3:
     # elif test == 4:
