@@ -592,8 +592,14 @@ if __name__ == "__main__":
                                 PI_left=[26.4, 811],
                                 PI_right=[27.0,771],
                                 proj_dist=0.1)
-
-
+        # PI_left has:
+        #   t_rise    = 0.0263 s
+        #   t_settle  = 0.1020 s
+        #   overshoot = 4.23   %
+        # PI_right has:
+        #   t_rise    = 0.0269 s
+        #   t_settle  = 0.0962 s
+        #   overshoot = 3.20   %
 
         # plot waypoints and path
         plt.subplot(2,2,1)
