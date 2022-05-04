@@ -48,7 +48,7 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 long curr_motorTimer = 0;
 long prev_motorTimer = 0;
-int motorInterval = 8000;
+int motorInterval = 3000;
 
 int command_step = 0;
 int prev_command_val = 0;
@@ -67,15 +67,16 @@ int curr_command_val = 0;
 volatile long encoder_count = 0;
 
 // interval for measurements
-int sensorInterval = 100;
+float sensorInterval = 100;
 
 // time tracking
 long prev_sensorTimer = 0;
 long curr_sensorTimer = 0;
-long actual_interval = 0;
+float actual_interval = 0;
+float elapsed_time_sec = 0;
 
 // motor speed [rad/s]
-int omega = 0;
+float omega = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -119,6 +120,8 @@ void loop(){
         actual_interval = curr_sensorTimer - prev_sensorTimer;
         prev_sensorTimer = curr_sensorTimer;
 
+        elapsed_time_sec = float(curr_sensorTimer)/1000.0;
+
         /////////////////////////////
         //     ROTARY ENCODER      //
         /////////////////////////////
@@ -146,7 +149,7 @@ void loop(){
         ////////////////
         // PRINT DATA //
         ////////////////
-        Serial.print(curr_sensorTimer);
+        Serial.print(elapsed_time_sec);
         Serial.print(", ");
         Serial.print(curr_command_val);
         Serial.print(", ");
@@ -182,7 +185,7 @@ void loop(){
         if (curr_command_val != prev_command_val) {
             prev_command_val = curr_command_val;
             tread_left.drive(curr_command_val);
-//            tread_right.drive(curr_command_val);
+            tread_right.drive(curr_command_val);
         }
     } // end motor timer if loop
 
