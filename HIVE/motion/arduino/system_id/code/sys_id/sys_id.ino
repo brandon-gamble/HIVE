@@ -124,7 +124,7 @@ void loop(){
         /////////////////////////////
 
         // calc motor speed [rad/s]
-        omega = (float)(encoder_count / actual_interval / ENC_REV_COUNT * 2*3.14159);
+        omega = encoder_count/actual_interval*1000/ENC_REV_COUNT*2*3.14159;
 
         // reset encoder count
         encoder_count = 0;

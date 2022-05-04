@@ -9,17 +9,17 @@ gives omega of enccoder, irrespective of direction
 #define ENC_INA 2
 
 // encoder pulse count
-volatile long encoder_count = 0;
+volatile float encoder_count = 0;
 
 // interval for measurements
-int interval = 1000;
+float interval = 1000;
 
 // time tracking
 long previousMillis = 0;
 long currentMillis = 0;
 
 // motor omega
-int omega = 0;
+float omega = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -32,6 +32,7 @@ void setup() {
 
     // set initial time
     previousMillis = millis();
+
 }
 
 void loop() {
@@ -40,8 +41,7 @@ void loop() {
         previousMillis = currentMillis;
 
         // calc omega
-        omega = (float)(encoder_count / interval / ENC_REV_COUNT * 2*3.14159);
-
+        omega = encoder_count/interval*1000/ENC_REV_COUNT*2*3.14159;
         // update displace when motor is spinning
         if (omega > 0) {
             Serial.print(omega);
