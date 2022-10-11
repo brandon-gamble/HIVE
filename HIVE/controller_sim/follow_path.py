@@ -322,7 +322,9 @@ if __name__ == "__main__":
     #   2   dif path, tank dims
     #   3   tank dims and tank dif eq
     #   4   same as 3 but with updated tank dif eq and PID
-    test = 4
+    #   5   but with different controller timing (slowing to 20 ms)
+    #       also spits out a pickle with control actuations
+    test = 5
 
     if test == 1:
 
@@ -646,4 +648,104 @@ if __name__ == "__main__":
                         # save=True,
                         # ghost=True,
                         # draw=True)
-    # elif test == 5:
+    elif test == 5:
+        # time step of physics and controller
+        T_phys = 0.001
+        T_cont = 0.02
+        ratio = T_cont/T_phys
+
+        # time vector for simulation
+        max_time = 30
+        t = np.arange(0,max_time,T_phys)
+        n = len(t)
+
+        start = [0,0]
+        hW=0.079
+        hL=0.174
+        R =0.022
+        my_hive = HIVE(num_timesteps=n, startpos=start,
+                        half_width=hW, half_length=hL, wheel_radius=R,
+                        motor_l_params=[1, 2.411, 19.81, 30, -25],
+                        motor_r_params=[1, 2.431, 20.10, 30, -25])
+        my_hive.s_max = 2
+
+        waypoints = np.array([[0.1,0.05],[0.2,0.05],[0.4,0.025],[0.6,0],[0.6,0.5],[0.5,0.6],[0.3,0.5],[0,0.2]]).T
+
+        my_hive.simulate_follow(waypoints,
+                                n,T_phys,T_cont,
+                                kp_heading=5,
+                                PI_left=[26.4, 811],
+                                PI_right=[27.0,771],
+                                proj_dist=0.1)
+        # PI_left has:
+        #   t_rise    = 0.0263 s
+        #   t_settle  = 0.1020 s
+        #   overshoot = 4.23   %
+        # PI_right has:
+        #   t_rise    = 0.0269 s
+        #   t_settle  = 0.0962 s
+        #   overshoot = 3.20   %
+
+        # plot waypoints and path
+        plt.subplot(2,2,1)
+        plt.scatter(waypoints[0,0:-1],waypoints[1,0:-1],label='waypoints')
+        plt.scatter(start[0],start[1],marker='x',label='start')
+        plt.scatter(waypoints[0,-1],waypoints[1,-1],marker='x',label='finish')
+        plt.plot(my_hive.x,my_hive.y,label='HIVE path')
+        plt.title('HIVE path')
+        plt.legend()
+
+        # plot acutations
+        plt.subplot(2,2,2)
+        plt.plot(t,my_hive.log_u_l,label='u_l')
+        plt.plot(t,my_hive.log_u_r,label='u_r')
+        plt.title('actuator commands')
+        plt.legend()
+
+        # plot states x,y,phi thru time
+        plt.subplot(2,2,3)
+        plt.plot(t,my_hive.x,label='x')
+        plt.plot(t,my_hive.y,label='y')
+        plt.plot(t,my_hive.phi,label='phi')
+        plt.title('positional states')
+        plt.legend()
+
+        # plot states omega and s thru time
+        plt.subplot(2,2,4)
+        plt.plot(t,my_hive.omega,label='omega')
+        # plt.plot(t,my_hive.omega_l,label='omega_l')
+        # plt.plot(t,my_hive.omega_r,label='omega_r')
+        plt.plot(t,my_hive.s,label='s')
+        plt.title('d/dt states')
+        plt.legend()
+
+        plt.show()
+
+        my_xy = np.array([my_hive.x,my_hive.y])
+        animatePath(xy_array=my_xy, phi=my_hive.phi,
+                        waypoints=waypoints, obstacle_list=[],
+                        map_x=[-.2,.8], map_y=[-.2,.8],
+                        pt_skip=20)
+                        # frameDelay=1,
+                        # width = 2,
+                        # save=True,
+                        # ghost=True,
+                        # draw=True)
+
+
+        ##########################
+        #     SAVE TEST DATA     #
+        ##########################
+        # generate filename string
+        if test < 10:
+            num = '0' + str(test)
+        else:
+            num = str(test)
+        filename = 'follow_path_test' + num + '_actuatorCommands.txt'
+
+        # build array of actuator data
+        # shape nx2 (two tall columns)
+        actuation_data = np.array([my_hive.log_u_l,my_hive.log_u_r]).T
+
+        # save file
+        np.savetxt(filename, actuation_data, fmt='%d')
