@@ -81,11 +81,12 @@ float omega = 0;
 void setup() {
     Serial.begin(9600);
     Serial.println("PROGRAM: sys_id.ino");
-    Serial.println("UPLOAD DATE: 2022 APR 19");
+    Serial.println("UPLOAD DATE: 2022 OCT 11");
 
     Serial.print("Sample time [ms]: ");
     Serial.println(sensorInterval);
-    Serial.println("Timestamp, Time elapsed [s], Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
+    Serial.println("Time elapsed [s], Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
+//    Serial.println("Timestamp, Time elapsed [s], Command Value, omega [rad/s], ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
 
     //////////////////////////////////
     //      VOLTMETER EXTERNAL      //
@@ -175,7 +176,7 @@ void loop(){
         } else if (command_step == 1) {
             curr_command_val = 100;
         } else if (command_step == 2) {
-            curr_command_val = 200;
+            curr_command_val = 200;            
         } else {
           curr_command_val = 0;
         }
@@ -188,6 +189,7 @@ void loop(){
             tread_right.drive(curr_command_val);
         }
     } // end motor timer if loop
+    
 
 } // end main loop
 

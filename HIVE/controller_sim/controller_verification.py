@@ -27,7 +27,10 @@ if __name__ == '__main__':
     if test == 1:
         # this test uses a 20 ms controller step (noted in txt file and can be found in original follow_path test)
         actuation_data = np.loadtxt('follow_path_test05_actuatorCommands.txt', dtype=int)
-        T_cont = 0.02
+        T_phys = 0.001
+
+        step = 5 # can't run at 1ms so skip by step
+        actuation_data = actuation_data[::step,:] # slice out every nth point
 
         # initialize connection
         ser = initialize_com(38400);
@@ -37,7 +40,7 @@ if __name__ == '__main__':
         time.sleep(5)
 
         # start sending commands
-        step = 0
+        k = 0
         for cmd in actuation_data:
             # build message to send
             msg  = '<L,' + str(cmd[0]) + '>'
@@ -47,9 +50,9 @@ if __name__ == '__main__':
             send_msg(ser,msg)
 
             # print to console
-            print(str(step) + msg)
+            print(str(k) + msg)
 
             # wait for controller discretization step time before sending another command
-            time.sleep(T_cont)
+            time.sleep(T_phys*step)
 
-            step += 1
+            k += 1

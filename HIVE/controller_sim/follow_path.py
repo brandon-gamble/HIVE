@@ -324,6 +324,7 @@ if __name__ == "__main__":
     #   4   same as 3 but with updated tank dif eq and PID
     #   5   but with different controller timing (slowing to 20 ms)
     #       also spits out a pickle with control actuations
+    #       also uses sys id 05 results
     test = 5
 
     if test == 1:
@@ -665,8 +666,8 @@ if __name__ == "__main__":
         R =0.022
         my_hive = HIVE(num_timesteps=n, startpos=start,
                         half_width=hW, half_length=hL, wheel_radius=R,
-                        motor_l_params=[1, 2.411, 19.81, 30, -25],
-                        motor_r_params=[1, 2.431, 20.10, 30, -25])
+                        motor_l_params=[1, 1.809, 16.17, 30, -25],
+                        motor_r_params=[1, 2.048, 18.15, 30, -25])
         my_hive.s_max = 2
 
         waypoints = np.array([[0.1,0.05],[0.2,0.05],[0.4,0.025],[0.6,0],[0.6,0.5],[0.5,0.6],[0.3,0.5],[0,0.2]]).T
