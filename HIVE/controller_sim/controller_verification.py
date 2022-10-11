@@ -28,9 +28,21 @@ if __name__ == '__main__':
         # this test uses a 20 ms controller step (noted in txt file and can be found in original follow_path test)
         actuation_data = np.loadtxt('follow_path_test05_actuatorCommands.txt', dtype=int)
         T_phys = 0.001
+        T_cont = 0.020
+        ratio = int(T_cont / T_phys)
 
-        step = 5 # can't run at 1ms so skip by step
-        actuation_data = actuation_data[::step,:] # slice out every nth point
+        step = 3
+        n = step*ratio
+        actuation_data = actuation_data[::n,:] # slice out every nth point
+
+        # build array of command messages
+        k = actuation_data.shape[0]
+        msg_array = []
+        for cmd in actuation_data:
+            msg  = '<L,' + str(cmd[0]) + '>'
+            msg += '<R,' + str(cmd[1]) + '>'
+            msg_array.append(msg)
+
 
         # initialize connection
         ser = initialize_com(38400);
@@ -41,18 +53,16 @@ if __name__ == '__main__':
 
         # start sending commands
         k = 0
-        for cmd in actuation_data:
-            # build message to send
-            msg  = '<L,' + str(cmd[0]) + '>'
-            msg += '<R,' + str(cmd[1]) + '>'
-
+        print('SENDING COMMANDS')
+        for msg in msg_array:
             # send message to arduino
             send_msg(ser,msg)
 
             # print to console
-            print(str(k) + msg)
+            #print(str(k) + msg)
 
             # wait for controller discretization step time before sending another command
-            time.sleep(T_phys*step)
+            time.sleep(T_cont*step)
 
             k += 1
+        print('COMPLETE')
