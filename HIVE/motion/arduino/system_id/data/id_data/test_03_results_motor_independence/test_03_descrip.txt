@@ -1,0 +1,15 @@
+trying to see if relationship between analog write and motor rpm is independent of what command the other motor is receiving
+
+for 00, both motors get identical commands
+for 01, left gets stepping cmd val and right gets 250 continuously
+for 02, left gets stepping cmd val and right is off 
+
+results:
+- difference between second motor running at 0 and 250 is about 10%
+i.e. measured motor runs about 10% slower when second motor is driving at 250 as opposed to 0
+
+- difference between second motor running equal and 250 is very small
+
+conclusion:
+- should run sys_id test with both motors driven equally
+- motors are nearly independent
