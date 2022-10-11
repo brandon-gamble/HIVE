@@ -3,7 +3,10 @@ to test if system id and control system were successful.
 
 takes a list of control inputs over time and sends them to arduino.
 
-
+TO USE:
+    1) using follow_path.py, generate a txt file of actuation commands
+    2) using this script, load in actuation txt file
+    3) plug into arduino and let it rip! see if tank follows path in simulation
 '''
 
 
@@ -17,34 +20,36 @@ from send_actuation_msg import *
 
 #   1   mimic HIVE/controller_sim/follow_path.py example
 
-test = 1
+if __name__ == '__main__':
 
-if test == 1:
-    # this test uses a 20 ms controller step (noted in txt file and can be found in original follow_path test)
-    actuation_data = np.loadtxt('follow_path_test05_actuatorCommands.txt', dtype=int)
-    T_cont = 0.02
+    test = 1
 
-    # initialize connection
-    ser = initialize_com(38400);
+    if test == 1:
+        # this test uses a 20 ms controller step (noted in txt file and can be found in original follow_path test)
+        actuation_data = np.loadtxt('follow_path_test05_actuatorCommands.txt', dtype=int)
+        T_cont = 0.02
 
-    # wait for connection
-    print("waiting for handshake...")
-    time.sleep(5)
+        # initialize connection
+        ser = initialize_com(38400);
 
-    # start sending commands
-    step = 0
-    for cmd in actuation_data:
-        # build message to send
-        msg  = '<L,' + str(cmd[0]) + '>'
-        msg += '<R,' + str(cmd[1]) + '>'
+        # wait for connection
+        print("waiting for handshake...")
+        time.sleep(5)
 
-        # send message to arduino
-        send_msg(ser,msg)
+        # start sending commands
+        step = 0
+        for cmd in actuation_data:
+            # build message to send
+            msg  = '<L,' + str(cmd[0]) + '>'
+            msg += '<R,' + str(cmd[1]) + '>'
 
-        # print to console
-        print(str(step) + msg)
+            # send message to arduino
+            send_msg(ser,msg)
 
-        # wait for controller discretization step time before sending another command
-        time.sleep(T_cont)
+            # print to console
+            print(str(step) + msg)
 
-        step += 1
+            # wait for controller discretization step time before sending another command
+            time.sleep(T_cont)
+
+            step += 1
