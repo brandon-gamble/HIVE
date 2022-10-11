@@ -90,9 +90,10 @@ long curr_sensorTimer = 0;
 int rpm = 0;
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(38400);
     Serial.println("PROGRAM: sys_id_manual.ino");
-    Serial.println("UPLOAD DATE: 2022 APR 13");
+    Serial.println("UPLOAD DATE: 2022 OCT 11");
+    Serial.println("BAUD 38400");
 
     Serial.println("Command Value, RPM, ADC, Motor Voltage (LPF), Motor Voltage (Filtered LPF)");
 
