@@ -1,0 +1,5 @@
+these tests were conducted by turning the rotary encoder by hand - no motor in this test. 
+
+results show that the gain values predicted by matlab may be way too high and need to be tuned down. test 05 uses the matlab gains divided by 1k, and resulting control was slow. 
+
+USE TEST 05 GAINS FOR PRELIMINARY TEST WITH MOTOR TO AVOID BURNING ANYTHING OUT

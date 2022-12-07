@@ -45,7 +45,15 @@ for k in range(lo,hi+1):
     time_s = time_s - time_s[0]
     time_us = time_s * 1000000
 
-    plt.plot(time_us, 10*volt)
+    if k == 0:
+        plt.plot(time_us, 10*volt)
+    if k == 8:
+        plt.plot(time_us, 10*volt)
+    if k == 4:
+        plt.plot(time_us, 10*volt)
+    if k == 2:
+        plt.plot(time_us, 10*volt)
+
 
 
 # plt.show()
@@ -95,6 +103,13 @@ for k in range(lo,hi+1):
     time_s = time_s - time_s[0]
     time_us = time_s * 1000000
 
-    plt.plot(time_us, 10*volt)
+    if k == 9:
+        plt.plot(time_us, 10*volt)
+    if k == 15:
+        plt.plot(time_us, 10*volt)
+    if k == 20:
+        plt.plot(time_us, 10*volt)
+    if k == 22:
+        plt.plot(time_us, 10*volt)
 
 plt.show()

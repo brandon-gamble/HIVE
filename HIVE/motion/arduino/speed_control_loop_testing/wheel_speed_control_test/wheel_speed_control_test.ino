@@ -67,8 +67,12 @@ int omega = 0;
 #define K_L 1.809
 #define B_L 16.17
 // controller parameters
-#define KI_L 26.4
-#define KP_L 811
+//#define KI_L 26.4
+//#define KP_L 811
+
+#define KI_L .02
+#define KP_L 0.8
+
 
 float omega_l_des = 0;
 float error_l = 0;
@@ -81,7 +85,7 @@ void setup() {
     Serial.println("UPLOAD DATE: 2022 DEC 05");
     Serial.println("BAUD 38400");
 
-    Serial.println("Desired Speed [rad/s], Control Action [8bit], Tread Speed [rad/s]");
+    // Serial.println("int_from_msg, Desired Speed [rad/s], Control Action [8bit], Tread Speed [rad/s]");
 
     //////////////////////////////////
     //      MOTOR DRIVER SETUP      //
@@ -137,22 +141,34 @@ void loop(){
         error_l = omega_l_des - omega;
         u_integral_l = u_integral_l + error_l*actual_interval;
         u_l = KP_L*error_l + KI_L*u_integral_l;
-        if (u_l > 255) {
-            u_l = 255;
-        }
-        if (u_l < -255) {
-            u_l = -255;
-        }
+//        if (u_l > 255) {
+//            u_l = 255;
+//        }
+//        if (u_l < -255) {
+//            u_l = -255;
+//        }
 
 
         ////////////////
         // PRINT DATA //
         ////////////////
-        Serial.print(int_from_msg);
-        Serial.print(", ");
-        Serial.print(u_l);
+        // Serial.print(omega_l_des);
+        // Serial.print(", ");
+        // Serial.print(u_l);
+        // Serial.print(", ");
+        // Serial.print(omega);
+        // Serial.print(", ");
+        // Serial.println("");
+
+        Serial.print(omega_l_des);
         Serial.print(", ");
         Serial.print(omega);
+        Serial.print(", ");
+        Serial.print(error_l);
+        Serial.print(", ");
+        Serial.print(u_integral_l);
+        Serial.print(", ");
+        Serial.print(u_l);
         Serial.print(", ");
         Serial.println("");
 
