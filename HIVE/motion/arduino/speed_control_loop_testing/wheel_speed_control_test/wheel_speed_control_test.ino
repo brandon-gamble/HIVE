@@ -73,6 +73,8 @@ int omega = 0;
 #define KI_L .02
 #define KP_L 0.8
 
+//#define KI_L .2
+//#define KP_L 8
 
 float omega_l_des = 0;
 float error_l = 0;
@@ -82,10 +84,18 @@ float u_l = 0;
 void setup() {
     Serial.begin(38400);
     Serial.println("PROGRAM: wheel_speed_control_test.ino");
-    Serial.println("UPLOAD DATE: 2022 DEC 05");
+    Serial.println("UPLOAD DATE: 2022 DEC 12");
     Serial.println("BAUD 38400");
 
+    Serial.print("KI_L: ");
+    Serial.println(KI_L);
+    Serial.print("KP_L: ");
+    Serial.println(KP_L);
+    Serial.print("T_controller [ms]: ");
+    Serial.println(sensorInterval);
+
     // Serial.println("int_from_msg, Desired Speed [rad/s], Control Action [8bit], Tread Speed [rad/s]");
+    Serial.println("omega_l_des [rad/s], omega [rad/s], error_l [rad/s], u_integral_l , u_l [8bit]");
 
     //////////////////////////////////
     //      MOTOR DRIVER SETUP      //
@@ -105,6 +115,10 @@ void setup() {
 
     // set initial time
     prev_sensorTimer = millis();
+
+    // DEBUG ISSUE WITH MOTOR STARTING BEFORE COMMAND HAS BEEN SENT
+    // USING DELAY TO ALLOW TIME TO GET SENSOR ON TREAD (THIS IS A BANDAID)
+    delay(5000);
 
 }
 
@@ -141,17 +155,21 @@ void loop(){
         error_l = omega_l_des - omega;
         u_integral_l = u_integral_l + error_l*actual_interval;
         u_l = KP_L*error_l + KI_L*u_integral_l;
-//        if (u_l > 255) {
-//            u_l = 255;
-//        }
-//        if (u_l < -255) {
-//            u_l = -255;
-//        }
+
+
+        if (u_l > 255) {
+           u_l = 255;
+        }
+        if (u_l < -255) {
+           u_l = -255;
+        }
+        tread_left.drive(u_l);
 
 
         ////////////////
         // PRINT DATA //
         ////////////////
+        // DEBUG REMOVE - change print statements? //
         // Serial.print(omega_l_des);
         // Serial.print(", ");
         // Serial.print(u_l);

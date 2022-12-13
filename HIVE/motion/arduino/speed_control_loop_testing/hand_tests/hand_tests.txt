@@ -1,3 +1,5 @@
+all tests done with a 50ms control loop time
+
 these tests were conducted by turning the rotary encoder by hand - no motor in this test. 
 
 results show that the gain values predicted by matlab may be way too high and need to be tuned down. test 05 uses the matlab gains divided by 1k, and resulting control was slow. 
