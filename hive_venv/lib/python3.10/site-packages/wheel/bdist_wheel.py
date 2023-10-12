@@ -10,10 +10,10 @@ import os
 import re
 import shutil
 import stat
+import struct
 import sys
 import sysconfig
 import warnings
-from collections import OrderedDict
 from email.generator import BytesGenerator, Generator
 from email.policy import EmailPolicy
 from glob import iglob
@@ -21,7 +21,7 @@ from io import BytesIO
 from shutil import rmtree
 from zipfile import ZIP_DEFLATED, ZIP_STORED
 
-import pkg_resources
+import setuptools
 from setuptools import Command
 
 from . import __version__ as wheel_version
@@ -29,15 +29,36 @@ from .macosx_libfile import calculate_macosx_platform_tag
 from .metadata import pkginfo_to_metadata
 from .util import log
 from .vendored.packaging import tags
+from .vendored.packaging import version as _packaging_version
 from .wheelfile import WheelFile
 
-safe_name = pkg_resources.safe_name
-safe_version = pkg_resources.safe_version
-setuptools_major_version = int(
-    pkg_resources.get_distribution("setuptools").version.split(".")[0]
-)
+
+def safe_name(name):
+    """Convert an arbitrary string to a standard distribution name
+    Any runs of non-alphanumeric/. characters are replaced with a single '-'.
+    """
+    return re.sub("[^A-Za-z0-9.]+", "-", name)
+
+
+def safe_version(version):
+    """
+    Convert an arbitrary string to a standard version string
+    """
+    try:
+        # normalize the version
+        return str(_packaging_version.Version(version))
+    except _packaging_version.InvalidVersion:
+        version = version.replace(" ", ".")
+        return re.sub("[^A-Za-z0-9.]+", "-", version)
+
+
+setuptools_major_version = int(setuptools.__version__.split(".")[0])
 
 PY_LIMITED_API_PATTERN = r"cp3\d"
+
+
+def _is_32bit_interpreter():
+    return struct.calcsize("P") == 4
 
 
 def python_tag():
@@ -49,9 +70,15 @@ def get_platform(archive_root):
     result = sysconfig.get_platform()
     if result.startswith("macosx") and archive_root is not None:
         result = calculate_macosx_platform_tag(archive_root, result)
-    elif result == "linux-x86_64" and sys.maxsize == 2147483647:
-        # pip pull request #3497
-        result = "linux-i686"
+    elif _is_32bit_interpreter():
+        if result == "linux-x86_64":
+            # pip pull request #3497
+            result = "linux-i686"
+        elif result == "linux-aarch64":
+            # packaging pull request #234
+            # TODO armv8l, packaging pull request #690 => this did not land
+            # in pip/packaging yet
+            result = "linux-armv7l"
 
     return result.replace("-", "_")
 
@@ -63,10 +90,9 @@ def get_flag(var, fallback, expected=True, warn=True):
     if val is None:
         if warn:
             warnings.warn(
-                "Config variable '{}' is unset, Python ABI tag may "
-                "be incorrect".format(var),
+                f"Config variable '{var}' is unset, Python ABI tag may " "be incorrect",
                 RuntimeWarning,
-                2,
+                stacklevel=2,
             )
         return fallback
     return val == expected
@@ -97,6 +123,9 @@ def get_abi_tag():
         # we want something like pypy36-pp73
         abi = "-".join(soabi.split("-")[:2])
         abi = abi.replace(".", "_").replace("-", "_")
+    elif soabi and impl == "graalpy":
+        abi = "-".join(soabi.split("-")[:3])
+        abi = abi.replace(".", "_").replace("-", "_")
     elif soabi:
         abi = soabi.replace(".", "_").replace("-", "_")
     else:
@@ -114,18 +143,21 @@ def safer_version(version):
 
 
 def remove_readonly(func, path, excinfo):
-    print(str(excinfo[1]))
+    remove_readonly_exc(func, path, excinfo[1])
+
+
+def remove_readonly_exc(func, path, exc):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
 
 class bdist_wheel(Command):
-
     description = "create a wheel distribution"
 
-    supported_compressions = OrderedDict(
-        [("stored", ZIP_STORED), ("deflated", ZIP_DEFLATED)]
-    )
+    supported_compressions = {
+        "stored": ZIP_STORED,
+        "deflated": ZIP_DEFLATED,
+    }
 
     user_options = [
         ("bdist-dir=", "b", "temporary directory for creating the distribution"),
@@ -139,7 +171,7 @@ class bdist_wheel(Command):
             "keep-temp",
             "k",
             "keep the pseudo-installation tree around after "
-            + "creating the distribution archive",
+            "creating the distribution archive",
         ),
         ("dist-dir=", "d", "directory to put final built distributions in"),
         ("skip-build", None, "skip rebuilding everything (for testing/debugging)"),
@@ -213,13 +245,16 @@ class bdist_wheel(Command):
             bdist_base = self.get_finalized_command("bdist").bdist_base
             self.bdist_dir = os.path.join(bdist_base, "wheel")
 
+        egg_info = self.distribution.get_command_obj("egg_info")
+        egg_info.ensure_finalized()  # needed for correct `wheel_dist_name`
+
         self.data_dir = self.wheel_dist_name + ".data"
         self.plat_name_supplied = self.plat_name is not None
 
         try:
             self.compression = self.supported_compressions[self.compression]
         except KeyError:
-            raise ValueError(f"Unsupported compression: {self.compression}")
+            raise ValueError(f"Unsupported compression: {self.compression}") from None
 
         need_options = ("dist_dir", "plat_name", "skip_build")
 
@@ -279,13 +314,17 @@ class bdist_wheel(Command):
                 # modules, use the default platform name.
                 plat_name = get_platform(self.bdist_dir)
 
-            if (
-                plat_name in ("linux-x86_64", "linux_x86_64")
-                and sys.maxsize == 2147483647
-            ):
-                plat_name = "linux_i686"
+            if _is_32bit_interpreter():
+                if plat_name in ("linux-x86_64", "linux_x86_64"):
+                    plat_name = "linux_i686"
+                if plat_name in ("linux-aarch64", "linux_aarch64"):
+                    # TODO armv8l, packaging pull request #690 => this did not land
+                    # in pip/packaging yet
+                    plat_name = "linux_armv7l"
 
-        plat_name = plat_name.lower().replace("-", "_").replace(".", "_")
+        plat_name = (
+            plat_name.lower().replace("-", "_").replace(".", "_").replace(" ", "_")
+        )
 
         if self.root_is_pure:
             if self.universal:
@@ -398,7 +437,10 @@ class bdist_wheel(Command):
         if not self.keep_temp:
             log.info(f"removing {self.bdist_dir}")
             if not self.dry_run:
-                rmtree(self.bdist_dir, onerror=remove_readonly)
+                if sys.version_info < (3, 12):
+                    rmtree(self.bdist_dir, onerror=remove_readonly)
+                else:
+                    rmtree(self.bdist_dir, onexc=remove_readonly_exc)
 
     def write_wheelfile(
         self, wheelfile_base, generator="bdist_wheel (" + wheel_version + ")"
@@ -455,6 +497,7 @@ class bdist_wheel(Command):
             warnings.warn(
                 'The "license_file" option is deprecated. Use "license_files" instead.',
                 DeprecationWarning,
+                stacklevel=2,
             )
             files.add(metadata["license_file"][1])
 
@@ -529,7 +572,7 @@ class bdist_wheel(Command):
 
             # delete dependency_links if it is only whitespace
             dependency_links_path = os.path.join(distinfo_path, "dependency_links.txt")
-            with open(dependency_links_path) as dependency_links_file:
+            with open(dependency_links_path, encoding="utf-8") as dependency_links_file:
                 dependency_links = dependency_links_file.read().strip()
             if not dependency_links:
                 adios(dependency_links_path)
