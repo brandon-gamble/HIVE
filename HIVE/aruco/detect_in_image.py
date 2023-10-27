@@ -3,13 +3,15 @@ import imutils
 import cv2
 import sys
 
-def main():
-#    image_path = "detection_images/multi_tag.png"
-    image_path = "detection_images/multi_tag_x1.png"
-        # note that one marker doesn't get identified in x1
-        # this is because it has been reflected -> it is not 
-        # supposed to be identified bc it is no longer a valid marker
-
+    #####################
+    # IMPORTANT LESSONS # 
+    #####################
+    # - markers can reliably be identified even when skewed and small
+    # - marker doesn't have to be black, but DOES need to be consistent
+    #     color throughout
+    # - marker needs to have a border. border can be thin and any color.
+    
+def detect_aruco_static(image_path):
     #######################
     ## def, load, detect ##
     #######################
@@ -18,7 +20,7 @@ def main():
     arucoDict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_50)
     
     # load image
-    print("loading image...")
+    print("loading image [{}] ...".format(image_path))
     image = cv2.imread(image_path)
     # if image is large and markers are small, then may need to adjust resize value
     image = imutils.resize(image, width=600)
@@ -28,7 +30,6 @@ def main():
     cv2.waitKey(0)
     
     # get parameters     
-#    arucoParams = cv2.aruco.DetectorParameters_create()
     arucoParams = cv2.aruco.DetectorParameters()
     
     # detect aruco 
@@ -79,11 +80,84 @@ def main():
             # show image
             cv2.imshow("image",image)
             cv2.waitKey(0)
+            
     else:
         print("no markers detected")
-                   
-            
     
+    print("all markers displayed") 
+    cv2.waitKey(0)      
+            
+def main():
+
+    image_paths = []
+
+    ################
+    # test block 1 # 
+    ################
+    # big, high res markers on white background, some skewed
+    # results: full detection
+   
+    image_paths.append("detection_images/multi_tag.png")
+    image_paths.append("detection_images/multi_tag_x1.png")
+        # note that one marker doesn't get identified in x1
+        # this is because it has been reflected -> it is not 
+        # supposed to be identified bc it is no longer a valid marker
+
+
+    ################
+    # test block 2 #
+    ################
+    # small, lower res markers. mixed background (cityscape, white, bordered)
+    # results:
+    #   jpg and png both work
+    #   markers not detected without white border
+
+    image_paths.append("detection_images/city.jpg")
+        # none detected
+    image_paths.append("detection_images/city_white.png")
+        #       all detected
+    image_paths.append("detection_images/city_white_border.png")       
+        #       all detected     
+    image_paths.append("detection_images/city_big.png")
+        # none detected
+    image_paths.append("detection_images/city_big_white.jpg")
+        #       all detected 
+
+
+    ################
+    # test block 3 #
+    ################
+    # constraints: size and color of border
+    # results: 
+        # cannot detect gray marker
+        # very thin border is detectable when a bright color
+        # very thin border fails when dark (nearly black)
+    
+    image_paths.append("detection_images/city_borders_colors.png")
+        # found all but 2: 
+            # top L: made darkspace of marker gray
+            # bot R: very thin and dark border
+
+
+    ################
+    # test block 4 #
+    ################
+    # constraints: detectable marker color? (non-black)
+    # results: all detected. seems that failure to detect in 
+    #   city_border_colors.png was because the squares in the 
+    #   center of the marker were not recolored to gray. therefore
+    #   marker contained 2 colors.
+    
+    image_paths.append("detection_images/colors.png")
+
+
+
+    #############
+    # RUN TESTS # 
+    #############
+    
+    for path in image_paths:
+        detect_aruco_static(path);
     
 if __name__ == "__main__":
     main()
