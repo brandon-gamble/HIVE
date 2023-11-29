@@ -9,6 +9,11 @@
 ## librealsense tutorial #1 - Accessing depth data ##
 #####################################################
 
+'''
+This script prints rolling frames to console as ASCII images. 
+
+'''
+
 # First import the library
 import pyrealsense2.pyrealsense2 as rs
 

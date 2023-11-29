@@ -7,6 +7,12 @@
 ##      Open CV and Numpy integration        ##
 ###############################################
 
+'''
+This script opens two viewing windows:
+    1) side by side realsense viewers: RGB and depth
+    2) truncated depth viewer: with slider for threshold distance
+'''
+
 import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import cv2

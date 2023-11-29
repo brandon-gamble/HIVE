@@ -7,6 +7,10 @@
 ##      Open CV and Numpy integration        ##
 ###############################################
 
+'''
+This script displays the realsense viewer with RBG and depth side by side.
+'''
+
 import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import cv2

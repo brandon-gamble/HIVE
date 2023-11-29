@@ -3,6 +3,10 @@
 
 # https://github.com/IntelRealSense/librealsense/blob/development/wrappers/python/examples/opencv_pointcloud_viewer.py
 
+'''
+This script displays the realsense pointcloud viewer with RGB image mapped to points in space
+'''
+
 """
 OpenCV and Numpy Point cloud Software Renderer
 
