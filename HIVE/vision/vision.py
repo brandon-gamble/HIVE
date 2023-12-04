@@ -28,6 +28,10 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
     color_image = image_pair[0]
     depth_image = image_pair[1]
     
+    # get image width and center
+    image_width = int(color_image.shape[1])
+    image_center_x = int(image_width/2)
+    
     # detect aruco 
     print("looking for markers")
     (corners, ids, rejected) = cv2.aruco.detectMarkers(color_image, arucoDict, parameters=arucoParams)
@@ -62,20 +66,30 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
             
             # compute center 
             cX = int((topLeft[0] + botRight[0]) / 2.0)
-            cY = int((topLeft[1] + botRight[1]) / 2.0)            
+            cY = int((topLeft[1] + botRight[1]) / 2.0)    
             
-            # find distance to center of marker 
-            # NOTE THE TRANSPOSITION OF X AND Y 
+            # want to make a small cloud around center 
+            # and find an average distance
+            
+            # make cloud bounds
             yMin = cY - cloud_size
             yMax = cY + cloud_size
             xMin = cX - cloud_size
             xMax = cX + cloud_size
             
+            # NOTE THE TRANSPOSITION OF X AND Y 
             cloud = depth_image[yMin:yMax:cloud_step, xMin:xMax:cloud_step]
 
-            d = np.median(cloud)
+            # # get median value of cloud
+            # d = np.median(cloud)
+            
+            # get average, ignoring zeros
+            d = cloud.sum()/(cloud!=0).sum()
+            
+            # compute heading (pixel) 
+            heading_p = cX - image_center_x
 
-            markers.append([markerID,[cX,cY],d])
+            markers.append([markerID,[cX,cY],d,heading_p])
 
             if visualize is True:                
                 # draw bounding box
@@ -93,11 +107,12 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
                     0.5, (0,255,0), 2)
 
                 # print out 
-                print("Aruco marker ID: {id:<3} Location: ({x:<3},{y:<3}) Distance [mm]: {d:<5}".format(
+                print("Marker ID: {id:<3} Loc: ({x:<3},{y:<3}) Dist [mm]: {d:.2f} Heading [pxl]: {h:<3}".format(
                     id = markerID,
                     x = cX,
                     y = cY, 
-                    d = d))
+                    d = d,
+                    h = heading_p))
                 
                 # show image
                 cv2.imshow("image",color_image)
@@ -141,14 +156,15 @@ def main():
     pipeline.start(config)
 
     image_pair = get_curr_frame(pipeline)
-    markers = detect_aruco(image_pair, (1, 1), visualize=True)
+    markers = detect_aruco(image_pair, (10, 2), visualize=True)
 
     for marker in markers:
-        print("Aruco marker ID: {id:<3} Location: ({x:<3},{y:<3}) Distance [mm]: {d:<5}".format(
+        print("Marker ID: {id:<3} Loc: ({x:<3},{y:<3}) Dist [mm]: {d:.2f} Heading [pxl]: {h:<3}".format(
             id = marker[0],
             x = marker[1][0],
             y = marker[1][1], 
-            d = marker[2]))
+            d = marker[2],
+            h = marker[3]))
 
     # Stop streaming
     pipeline.stop()
