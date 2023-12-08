@@ -1,0 +1,3 @@
+test upload from pi
+
+using cli

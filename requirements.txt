@@ -1,9 +1,9 @@
-math
+#math
 matplotlib==3.2.0
 numpy==1.17.4
 pygame==2.1.2
 pyserial==3.5
 scipy==1.5.2
-sys
-time
+#sys
+#time
 tkinter==8.6
