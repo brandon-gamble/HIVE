@@ -19,13 +19,15 @@ boolean new_data = false;
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 5
-#define AIN2 4
-#define PWMA 3
-#define BIN1 7
-#define BIN2 8
-#define PWMB 9
-#define STBY 6
+#define AIN1 8
+#define AIN2 7
+#define PWMA 6
+
+#define BIN1 10
+#define BIN2 11
+#define PWMB 12
+
+#define STBY 9
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
@@ -42,7 +44,8 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 #define ENC_REV_COUNT 360
 
 // encoder outout A to arduino
-#define ENC_INA 2
+#define ENC_INA 3
+#define ENC_INB 4
 
 // encoder pulse count
 volatile long encoder_count = 0;
@@ -57,7 +60,7 @@ long curr_sensorTimer = 0;
 float actual_interval = 0;
 
 // motor speed [rad/s]
-int omega = 0;
+float omega_l = 0;
 
 ////////////////////////////
 // CONTROL LOOP VARIABLES //
@@ -109,16 +112,13 @@ void setup() {
     //////////////////////////////////
     // set encoder pin as input
     pinMode(ENC_INA, INPUT_PULLUP);
+    pinMode(ENC_INB, INPUT);
 
     // attach interrupt for reading encoder
     attachInterrupt(digitalPinToInterrupt(ENC_INA), updateEncoder, RISING);
 
     // set initial time
     prev_sensorTimer = millis();
-
-    // DEBUG ISSUE WITH MOTOR STARTING BEFORE COMMAND HAS BEEN SENT
-    // USING DELAY TO ALLOW TIME TO GET SENSOR ON TREAD (THIS IS A BANDAID)
-    delay(5000);
 
 }
 
@@ -144,7 +144,12 @@ void loop(){
         /////////////////////////////
 
         // calc wheel speed [rad/s]
-        omega = (float)(encoder_count/actual_interval*1000*2*3.14159 / ENC_REV_COUNT);
+        omega_l = (float)(encoder_count/actual_interval*1000*2*3.14159 / ENC_REV_COUNT);
+
+        // find direction of spin
+        // if (digitalRead(ENC_INA) != digitalRead(ENC_INB)) {
+        //     omega_l = -1*omega_l;
+        // }
 
         // reset encoder count
         encoder_count = 0;
@@ -152,7 +157,14 @@ void loop(){
         //////////////////////////
         //     CONTROL LOOP     //
         //////////////////////////
-        error_l = omega_l_des - omega;
+
+        // encoders only wired for positive signal:
+        // need to flip sign of omega when desired is negative
+        if (omega_l_des >= 0) {
+            error_l = omega_l_des - omega_l;
+        } else {
+            error_l = omega_l_des + omega_l;
+        }
         u_integral_l = u_integral_l + error_l*actual_interval;
         u_l = KP_L*error_l + KI_L*u_integral_l;
 
@@ -180,7 +192,7 @@ void loop(){
 
         Serial.print(omega_l_des);
         Serial.print(", ");
-        Serial.print(omega);
+        Serial.print(omega_l);
         Serial.print(", ");
         Serial.print(error_l);
         Serial.print(", ");
