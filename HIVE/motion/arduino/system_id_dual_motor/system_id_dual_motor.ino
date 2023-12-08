@@ -17,7 +17,7 @@
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = 1;
+const int polarity_A = -1;
 const int polarity_B = 1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
@@ -43,7 +43,7 @@ int curr_command_val = 0;
 #define ENC_0_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-#define ENC_0_GEAR_RATIO 1
+const float ENC_0_GEAR_RATIO = 1.1428;
 
 // encoder outout A to arduino
 #define ENC_0_INA 2
@@ -62,7 +62,7 @@ float omega_enc_0 = 0;
 #define ENC_1_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-#define ENC_1_GEAR_RATIO 1
+const float ENC_1_GEAR_RATIO = 0.86253;
 
 // encoder outout A to arduino
 #define ENC_1_INA 3
