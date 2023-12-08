@@ -1,3 +1,4 @@
+int flag = 0;
 /////////////////////////////////////
 //        serial comm vars         //
 /////////////////////////////////////
@@ -19,18 +20,20 @@ boolean new_data = false;
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 5
-#define AIN2 4
-#define PWMA 3
-#define BIN1 7
-#define BIN2 8
-#define PWMB 9
-#define STBY 6
+#define AIN1 7
+#define AIN2 6
+#define PWMA 5
+
+#define BIN1 9
+#define BIN2 10
+#define PWMB 11
+
+#define STBY 8
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
 const int polarity_A = 1;
-const int polarity_B = 1;
+const int polarity_B = -1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
 Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
@@ -45,6 +48,9 @@ void setup(){
 
     Serial.println("PROGRAM: serial_motor_control.ino");
     Serial.println("UPLOAD: 2022-04-05");
+
+    Serial.print("flag: ");
+    Serial.println(flag);
 }
 
 void loop() {
@@ -57,6 +63,8 @@ void loop() {
         //show_parsed_msg();
         send_commands();
         new_data = false;
+
+        Serial.println(flag);
     }
 }
 
@@ -115,10 +123,12 @@ void send_commands() {
         case 'L':                                   // 'L' = left tread
             // left tread
             tread_left.drive(int_from_msg);
+            flag = int_from_msg;
             break;
         case 'R':                                   // 'R' = right tread
             // right tread
             tread_right.drive(int_from_msg);
+            flag = int_from_msg;
             break;
         case 'B':                                   // 'B' = brake
             tread_left.brake();
