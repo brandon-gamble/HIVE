@@ -19,21 +19,32 @@ boolean new_data = false;
 
 # include <BJG_TB6612FNG.h>
 
+//// H-Bridge pins
+//#define AIN1 8
+//#define AIN2 7
+//#define PWMA 6
+//
+//#define BIN1 10
+//#define BIN2 11
+//#define PWMB 12
+//
+//#define STBY 9
+
 // H-Bridge pins
-#define AIN1 7
-#define AIN2 6
-#define PWMA 5
+#define AIN1 6
+#define AIN2 5
+#define PWMA 4
 
-#define BIN1 9
-#define BIN2 10
-#define PWMB 11
+#define BIN1 8
+#define BIN2 9
+#define PWMB 10
 
-#define STBY 8
+#define STBY 7
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = 1;
-const int polarity_B = -1;
+const int polarity_A = -1;
+const int polarity_B = 1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
 Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);

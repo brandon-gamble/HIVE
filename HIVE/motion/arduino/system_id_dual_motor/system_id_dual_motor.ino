@@ -4,15 +4,15 @@
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 7
-#define AIN2 6
-#define PWMA 5
+#define AIN1 8
+#define AIN2 7
+#define PWMA 6
 
-#define BIN1 9
-#define BIN2 10
-#define PWMB 11
+#define BIN1 10
+#define BIN2 11
+#define PWMB 12
 
-#define STBY 8
+#define STBY 9
 
 
 // used to flip motor configuration without rewiring
