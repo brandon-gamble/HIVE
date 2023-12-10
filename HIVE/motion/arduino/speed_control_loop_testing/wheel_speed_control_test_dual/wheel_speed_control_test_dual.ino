@@ -4,19 +4,19 @@
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 8
-#define AIN2 7
-#define PWMA 6
+#define AIN1 7
+#define AIN2 6
+#define PWMA 5
 
-#define BIN1 10
-#define BIN2 11
-#define PWMB 12
+#define BIN1 9
+#define BIN2 10
+#define PWMB 11
 
-#define STBY 9
+#define STBY 8
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = -1;
+const int polarity_A = 1;
 const int polarity_B = 1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
@@ -32,16 +32,12 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 // pulses per rev of encoder
 #define ENC_0_REV_COUNT 360
-
 // gear ratio between encoder and output shaft
-#define ENC_0_GEAR_RATIO 1.1428
-
+#define ENC_0_GEAR_RATIO 0.86253
 // encoder outout A to arduino
 #define ENC_0_INA 2
-
 // encoder pulse count
 volatile long encoder_0_count = 0;
-
 // motor speed [rad/s]
 float omega_enc_0 = 0;
 
@@ -51,17 +47,13 @@ float omega_enc_0 = 0;
 
 // pulses per rev of encoder
 #define ENC_1_REV_COUNT 360
-
 // gear ratio between encoder and output shaft
-#define ENC_1_GEAR_RATIO 0.86253
-
+#define ENC_1_GEAR_RATIO 1.1428
 // encoder outout A to arduino
 #define ENC_1_INA 3
-#define ENC_1_INB 4
-
+// #define ENC_1_INB 4s
 // encoder pulse count
 volatile long encoder_1_count = 0;
-
 // motor speed [rad/s]
 float omega_enc_1 = 0.0;
 
@@ -133,8 +125,8 @@ float *omega_r_ptr;
 
 void setup() {
     Serial.begin(38400);
-    Serial.println("PROGRAM: wheel_speed_control_test.ino");
-    Serial.println("UPLOAD DATE: 2022 DEC 12");
+    Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
+    Serial.println("UPLOAD DATE: 2023 DEC 10");
     Serial.println("BAUD 38400");
 
     Serial.print("KI_L: ");
@@ -163,23 +155,19 @@ void setup() {
     //     ROTARY ENCODER SETUP     //
     //////////////////////////////////
     // set encoder pin as input
-
     pinMode(ENC_0_INA, INPUT_PULLUP);
     pinMode(ENC_1_INA, INPUT_PULLUP);
-
-    pinMode(ENC_1_INB, INPUT);
 
     // attach interrupt for reading encoder
     attachInterrupt(digitalPinToInterrupt(ENC_0_INA), updateEncoder_0, RISING);
     attachInterrupt(digitalPinToInterrupt(ENC_1_INA), updateEncoder_1, RISING);
 
     // assign pointer addresses
-    omega_r_ptr = &omega_enc_0;
-    omega_l_ptr = &omega_enc_1;
+    omega_l_ptr = &omega_enc_0;
+    omega_r_ptr = &omega_enc_1;
 
     // set initial time
     prev_sensorTimer = millis();
-
 }
 
 void loop(){
@@ -204,15 +192,17 @@ void loop(){
         /////////////////////////////
 
         // calc wheel speed [rad/s]
-        // flag //
-        // omega_l = (float)(encoder_count/actual_interval*1000*2*3.14159 / ENC_1_REV_COUNT);
         omega_enc_0 = (float)(encoder_0_count/actual_interval*1000*2*3.14159 / ENC_0_REV_COUNT * ENC_0_GEAR_RATIO);
         omega_enc_1 = (float)(encoder_1_count/actual_interval*1000*2*3.14159 / ENC_1_REV_COUNT * ENC_1_GEAR_RATIO);
 
-        // find direction of spin
-        // if (digitalRead(ENC_INA) != digitalRead(ENC_INB)) {
-        //     omega_l = -1*omega_l;
-        // }
+        // encoders only wired for positive signal;
+        // need to get direction from inputs:
+        if (u_l < 0) {
+            omega_enc_0 = -1 * omega_enc_0;
+        }
+        if (u_r < 0) {
+            omega_enc_1 = -1 * omega_enc_1;
+        }
 
         // reset encoder count
         encoder_0_count = 0;
@@ -223,23 +213,9 @@ void loop(){
         //////////////////////////
 
         // left side ///////////////////////////////////////////
-
-        // encoders only wired for positive signal:
-        // need to flip sign of omega when desired is negative
-        // flag //
-        // if (omega_l_des >= 0) {
-        //     error_l = omega_l_des - omega_l;
-        // } else {
-        //     error_l = omega_l_des + omega_l;
-        // }
-        if (omega_l_des >= 0) {
-            error_l = omega_l_des - *omega_l_ptr;
-        } else {
-            error_l = omega_l_des + *omega_l_ptr;
-        }
+        error_l = omega_l_des - *omega_l_ptr;
         u_integral_l = u_integral_l + error_l*actual_interval;
         u_l = KP_L*error_l + KI_L*u_integral_l;
-
 
         if (u_l > 255) {
            u_l = 255;
@@ -247,18 +223,13 @@ void loop(){
         if (u_l < -255) {
            u_l = -255;
         }
+
         tread_left.drive(u_l);
 
         // right side ///////////////////////////////////////////
-
-        if (omega_r_des >= 0) {
-            error_r = omega_r_des - *omega_r_ptr;
-        } else {
-            error_r = omega_r_des + *omega_r_ptr;
-        }
+        error_r = omega_r_des - *omega_r_ptr;
         u_integral_r = u_integral_r + error_r*actual_interval;
         u_r = KP_R*error_r + KI_R*u_integral_r;
-
 
         if (u_r > 255) {
            u_r = 255;
@@ -266,6 +237,7 @@ void loop(){
         if (u_r < -255) {
            u_r = -255;
         }
+
         tread_right.drive(u_r);
 
         ////////////////
@@ -296,30 +268,7 @@ void loop(){
         Serial.print(", ");
 
         Serial.println("");
-
-/////////////////////////////////////////////////////////
-        // ////////////////
-        // // PRINT DATA //
-        // ////////////////
-        //
-        // // Serial.print(omega_l_des);
-        // // Serial.print(", ");
-        // Serial.print(*omega_l_ptr);
-        // Serial.print(", ");
-        //
-        // Serial.print(dir_l);
-        //
-        // // Serial.print(error_l);
-        // // Serial.print(", ");
-        // // Serial.print(u_integral_l);
-        // // Serial.print(", ");
-        // // Serial.print(u_l);
-        // // Serial.print(", ");
-        // Serial.println("");
-/////////////////////////////////////////////////////////
     } // end rpm/voltage/text-output loop
-
-
 } // end main loop
 
 ///////////////////////////
@@ -333,15 +282,6 @@ void updateEncoder_1() {
     encoder_1_count ++;
     // dir_l = getDir();
 }
-
-// float getDir() {
-//     // this is not working properly
-//     if (digitalRead(ENC_1_INA) != digitalRead(ENC_1_INB)) {
-//         return -1;
-//     } else {
-//         return +1;
-//     }
-// }
 
 ////////////////////
 // serial control //

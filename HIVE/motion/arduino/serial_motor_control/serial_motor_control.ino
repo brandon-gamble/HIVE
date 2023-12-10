@@ -19,27 +19,37 @@ boolean new_data = false;
 
 # include <BJG_TB6612FNG.h>
 
-//// H-Bridge pins
-//#define AIN1 8
-//#define AIN2 7
-//#define PWMA 6
-//
-//#define BIN1 10
-//#define BIN2 11
-//#define PWMB 12
-//
-//#define STBY 9
-
+/////////////////////////////
+/////////////////////////////
 // H-Bridge pins
-#define AIN1 6
-#define AIN2 5
-#define PWMA 4
+#define AIN1 8
+#define AIN2 7
+#define PWMA 6
 
-#define BIN1 8
-#define BIN2 9
-#define PWMB 10
+#define BIN1 10
+#define BIN2 11
+#define PWMB 12
 
-#define STBY 7
+#define STBY 9
+/////////////////////////////
+/////////////////////////////
+
+
+
+/////////////////////////////
+/////////////////////////////
+//// H-Bridge pins
+//#define AIN1 5
+//#define AIN2 4
+//#define PWMA 3
+//
+//#define BIN1 7
+//#define BIN2 8
+//#define PWMB 9
+//
+//#define STBY 6
+/////////////////////////////
+/////////////////////////////
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
