@@ -33,7 +33,7 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
     image_center_x = int(image_width/2)
     
     # detect aruco 
-    print("looking for markers")
+    #print("looking for markers")
     #(corners, ids, rejected) = cv2.aruco.detectMarkers(color_image, arucoDict, parameters=arucoParams) 
     mydetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
     (corners, ids, rejected) = mydetector.detectMarkers(color_image)
@@ -49,10 +49,6 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
         cv2.waitKey(0)
         
     if len(corners) > 0: # i.e. at least 1 marker detected
-        print("markers detected")
-        
-        print("ID | Loc [px] | Dist [mm] | Heading [px]")
-        print("----------------------------------------")
 
         # flatten list
         ids = ids.flatten()
@@ -160,18 +156,21 @@ def main():
     # Start streaming
     pipeline.start(config)
 
-    image_pair = get_curr_frame(pipeline)
-    markers = detect_aruco(image_pair, (10, 2), visualize=True)
-
     print("ID | Loc [px] | Dist [mm] | Heading [px]")
     print("----------------------------------------")
-    for marker in markers:
-        print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
-            id = marker[0],
-            x = marker[1][0],
-            y = marker[1][1], 
-            d = marker[2],
-            h = marker[3]))
+
+    while True:
+        image_pair = get_curr_frame(pipeline)
+        markers = detect_aruco(image_pair, (10, 2), visualize=False)
+        
+        for marker in markers:
+            print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
+                id = marker[0],
+                x = marker[1][0],
+                y = marker[1][1], 
+                d = marker[2],
+                h = marker[3]))
+        input()
 
     # Stop streaming
     pipeline.stop()

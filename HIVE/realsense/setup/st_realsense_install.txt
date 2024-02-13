@@ -26,7 +26,7 @@ $ mkdir build
 $ cd build
 $ export CC=/usr/bin/gcc
 $ export CXX=/usr/bin/g++
-$ cmake -D CMAKE_BUILD_TYPE="Release" \            #I dont know why the cmake call needs to be made like this but its apparently important
+$ cmake -D CMAKE_BUILD_TYPE="Release" \   # DO NOT COPY-PASTE THIS. TYPE IN MANUALLY LINE BY LINE
 -D FORCE_LIBUVC=ON \
 -D BUILD_PYTHON_BINDINGS=ON \
 -D BUILD_EXAMPLES=ON ..
