@@ -7,6 +7,13 @@ import argparse
 import imutils
 import sys
 
+######################################
+need to flip origin of image
+    should probably put get_curr_frame in its own camera doc to import
+    that way changes work across docs (no unique version of get frame)
+    should probably flip origin in get_curr_frame, but this may break the indexing in the aruco tracking
+######################################
+
 def get_curr_frame(pipeline):
     # Wait for a coherent pair of frames: depth and color
     frames = pipeline.wait_for_frames()
@@ -67,8 +74,8 @@ def plot_image(image):
 
     surf = ax.plot_surface(X, Y, image, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
-    
-    
+
+
     plt.show()
 
     return
@@ -104,7 +111,7 @@ def main():
 
 
 
-        
+
 
     # Stop streaming
     pipeline.stop()
