@@ -52,7 +52,7 @@ def get_aligned_frame(pipeline):
 
     return pair
 
-def get_z_slice(depth_image, slice_height, slice_size):
+def get_z_slice_avg(depth_image, slice_height, slice_size):
     # depth_image:  array of depth data
     # slice_height: z location in image to center slice
     # slice_size:   how thick slice to be
@@ -68,6 +68,15 @@ def get_z_slice(depth_image, slice_height, slice_size):
 
     # now need to average down to a single row
     z_slice = np.mean(z_slice, axis=0)
+
+    return z_slice
+
+def get_z_slice(depth_image, slice_idx_px):
+    # depth_image:  array of depth data
+    # slice_idx_px: z location in image to center slice
+    #               (0 is top of image)
+
+    z_slice = depth_image[slice_idx_px,:]
 
     return z_slice
 
@@ -97,8 +106,13 @@ def plot_image_3d(image):
 
 def plot_image_2d(image):
     # "image" is array, not frame
-    plt.imshow(image, cmap='hsv')
+
+    # good cmap options: inferno, hsv
+    plt.imshow(image, cmap='inferno', vmin=0, vmax=1500)
     plt.colorbar()
+    plt.title('Realsense FOV, Depth [mm]')
+    plt.xlabel('x [px]')
+    plt.ylabel('z [px]')
     plt.show()
     return
 
@@ -108,7 +122,11 @@ def main():
     ---------------------------
     01  plot color map of depth image, then aligned color image.
         note that color image has smaller FOV, so when aligned has large black border
-    02  plot 2d color map, 3d color map, then plot slices from map
+    02  plot:
+            - 2d color map,
+            - 3d color map (not really useful),
+            - color image (aligned)
+            - slices from map
     '''
     test_case = 2
 
@@ -136,22 +154,37 @@ def main():
         while True:
             image_pair = get_aligned_frame(pipeline)
             depth_image = image_pair[1]
+            color_image = image_pair[0]
 
             plot_image_2d(depth_image)
             plot_image_3d(depth_image)
 
-            a = 200
-            b = 370
-            c = 420
+            plt.imshow(color_image)
+            plt.show()
 
-            z_slice_a = get_z_slice(depth_image, a, 2)
-            z_slice_b = get_z_slice(depth_image, b, 2)
-            z_slice_c = get_z_slice(depth_image, c, 2)
+            # set slice locations
+            a = 170
+            b = 340
+            c = 400
 
-            plt.plot(z_slice_a, label=str(a))
-            plt.plot(z_slice_b, label=str(b))
-            plt.plot(z_slice_c, label=str(c))
+            # get slices
+            z_slice_a = get_z_slice(depth_image, a)
+            z_slice_b = get_z_slice(depth_image, b)
+            z_slice_c = get_z_slice(depth_image, c)
 
+            # remove zeros from slices
+            z_slice_a = z_slice_a[z_slice_a != 0]
+            z_slice_b = z_slice_b[z_slice_b != 0]
+            z_slice_c = z_slice_c[z_slice_c != 0]
+
+            # plot slices
+            plt.plot(z_slice_a, label=str(a)+' [px]')
+            plt.plot(z_slice_b, label=str(b)+' [px]')
+            plt.plot(z_slice_c, label=str(c)+' [px]')
+
+            plt.xlabel('x [px]')
+            plt.ylabel('depth [mm]')
+            plt.title('Realsense FOV depth slice [mm]')
             plt.legend()
             plt.show()
 
