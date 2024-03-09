@@ -1,5 +1,6 @@
 import pyrealsense2.pyrealsense2 as rs
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import cv2
@@ -116,6 +117,29 @@ def plot_image_2d(image):
     plt.show()
     return
 
+def px2rad(px, wp, theta_fov):
+    '''
+    --------------------------------------------------------
+    input
+    --------------------------------------------------------
+    px:        np.array  [px]   pixel coordinate
+    wp:        int       [px]   width of image
+    theta_fov: int       [rad]  angle of field of view
+
+    --------------------------------------------------------
+    output
+    --------------------------------------------------------
+    theta:     np.array  [rad]  heading of pixel
+
+    '''
+
+    # "focal distance" / apparent distance of pixels
+    dp = wp/(2*np.tan(theta_fov/2))
+
+    theta = np.arctan((px-wp/2)/dp)
+
+    return theta
+
 def main():
     '''
     test files
@@ -127,8 +151,9 @@ def main():
             - 3d color map (not really useful),
             - color image (aligned)
             - slices from map
+    03  converts
     '''
-    test_case = 2
+    test_case = 3
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -188,11 +213,65 @@ def main():
             plt.legend()
             plt.show()
 
+    elif test_case == 3:
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
 
+            # set camera specs
+            wp = 640
+            theta_fov_depth = math.radians(87)
 
+            # plot depth image
+            plot_image_2d(depth_image)
 
+            # plot color image
+            plt.imshow(color_image)
+            plt.show()
 
+            # convert horizontal pixels to headings
+            x_array = np.arange(wp)
+            x_array = px2rad(x_array, wp, theta_fov_depth)
 
+            # set slice locations
+            a_px = 150
+            a_px = 175
+            b_px = 225
+            c_px = 300
+
+            # get slices
+            z_slice_a = get_z_slice(depth_image, a_px)
+            z_slice_b = get_z_slice(depth_image, b_px)
+            z_slice_c = get_z_slice(depth_image, c_px)
+
+            # put into pairs [rad, depth]
+            data_a = np.array([x_array,z_slice_a])
+            data_b = np.array([x_array,z_slice_b])
+            data_c = np.array([x_array,z_slice_c])
+
+            # remove zeros from each set
+            mask_a = data_a[1,:] != 0
+            data_a = data_a[:, mask_a]
+
+            mask_b = data_b[1,:] != 0
+            data_b = data_b[:, mask_b]
+
+            mask_c = data_c[1,:] != 0
+            data_c = data_c[:, mask_c]
+
+            # plot masked slices
+            plt.plot(np.degrees(data_a[0,:]), data_a[1,:], label=str(a_px)+' [px]')
+            plt.plot(np.degrees(data_b[0,:]), data_b[1,:], label=str(b_px)+' [px]')
+            plt.plot(np.degrees(data_c[0,:]), data_c[1,:], label=str(c_px)+' [px]')
+
+            plt.xlabel('x [deg]')
+            plt.ylabel('depth [mm]')
+            plt.legend()
+            plt.title('Realsense FOV depth slice [mm]')
+            plt.show()
+            
     # Stop streaming
     pipeline.stop()
     print("Stream stopped")
