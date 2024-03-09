@@ -1,0 +1,16 @@
+important note: heading is dependent on pixel location and cam specs (resolution and FOV). look at setup images and note spacing of lines of -15, 0, and +15:
+
+distance | spacing
+------------------
+   300   |   77
+   175   |   42
+
+
+while lines are much closer, they are still spaced 15 degrees, and therefore they are captured by camera they have nearly identical pixel locations of approx 200, 320, and 400
+
+
+
+
+for T03-01, center marker is 40mm square, adjacent markers are 20mm square. all markers are 20mm in depth
+
+for T03-02, markers are not uniform, but roughly 8mm X 20mm with 8mm depth
