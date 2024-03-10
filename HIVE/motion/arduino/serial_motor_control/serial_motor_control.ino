@@ -22,32 +22,15 @@ boolean new_data = false;
 /////////////////////////////
 /////////////////////////////
 // H-Bridge pins
-#define AIN1 8
-#define AIN2 7
-#define PWMA 6
+#define AIN1 7
+#define AIN2 6
+#define PWMA 5
 
-#define BIN1 10
-#define BIN2 11
-#define PWMB 12
+#define BIN1 9
+#define BIN2 10
+#define PWMB 11
 
-#define STBY 9
-/////////////////////////////
-/////////////////////////////
-
-
-
-/////////////////////////////
-/////////////////////////////
-//// H-Bridge pins
-//#define AIN1 5
-//#define AIN2 4
-//#define PWMA 3
-//
-//#define BIN1 7
-//#define BIN2 8
-//#define PWMB 9
-//
-//#define STBY 6
+#define STBY 8
 /////////////////////////////
 /////////////////////////////
 

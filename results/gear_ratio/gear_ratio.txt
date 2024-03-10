@@ -1,0 +1,21 @@
+Gear Ratio Test Results:
+
+-----------------
+      Left
+-----------------
+Actual:   0.86253
+Avg:      0.88042
+STD:      0.02544
+Error:    0.01789
+
+
+-----------------
+     Right
+-----------------
+Actual:   1.1428
+Avg:      1.1790
+STD:      0.0331  
+Error:    0.0362
+
+
+Results confirm that ratio from counting teeth on gears is correct.

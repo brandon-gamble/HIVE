@@ -26,9 +26,9 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 //     ROTARY ENCODER SETUP     //
 //////////////////////////////////
 
-///////////////
-// ENCODER 0 //
-///////////////
+//////////////////////
+// ENCODER 0 - LEFT //
+//////////////////////
 
 // pulses per rev of encoder
 #define ENC_0_REV_COUNT 360
@@ -41,9 +41,9 @@ volatile long encoder_0_count = 0;
 // motor speed [rad/s]
 float omega_enc_0 = 0;
 
-///////////////
-// ENCODER 1 //
-///////////////
+///////////////////////
+// ENCODER 1 - RIGHT //
+///////////////////////
 
 // pulses per rev of encoder
 #define ENC_1_REV_COUNT 360
