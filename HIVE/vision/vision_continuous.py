@@ -93,7 +93,7 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
             # compute heading (pixel)
             heading_p = cX - image_center_x
 
-            markers.append([markerID,[cX,cY],d,heading_p])
+            markers.append([markerID,cX,cY,d,heading_p])
 
             if visualize is True:
                 # draw bounding box
@@ -123,8 +123,8 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
                 cv2.waitKey(0)
             # end of visualization routine
 
-    else:
-        print("no markers detected")
+    # else:
+        # print("no markers detected")
 
     if visualize is True:
         print("all markers displayed")
@@ -166,6 +166,29 @@ def get_aligned_frame(pipeline):
 
     return pair
 
+def px2rad(px, wp, theta_fov):
+    '''
+    --------------------------------------------------------
+    input
+    --------------------------------------------------------
+    px:        np.array  [px]   pixel coordinate
+    wp:        int       [px]   width of image
+    theta_fov: int       [rad]  angle of field of view
+
+    --------------------------------------------------------
+    output
+    --------------------------------------------------------
+    theta:     np.array  [rad]  heading of pixel
+
+    '''
+
+    # "focal distance" / apparent distance of pixels
+    dp = wp/(2*np.tan(theta_fov/2))
+
+    theta = np.arctan((px-wp/2)/dp)
+
+    return theta
+
 def main():
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -180,16 +203,17 @@ def main():
     print("----------------------------------------")
 
     while True:
-        image_pair = get_curr_frame(pipeline)
+        # image_pair = get_curr_frame(pipeline)
+        image_pair = get_aligned_frame(pipeline)
         markers = detect_aruco(image_pair, (10, 2), visualize=False)
 
         for marker in markers:
             print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
                 id = marker[0],
-                x = marker[1][0],
-                y = marker[1][1],
-                d = marker[2],
-                h = marker[3]))
+                x = marker[1],
+                y = marker[2],
+                d = marker[3],
+                h = marker[4]))
         input()
 
     # Stop streaming

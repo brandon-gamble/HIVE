@@ -271,7 +271,7 @@ def main():
             plt.legend()
             plt.title('Realsense FOV depth slice [mm]')
             plt.show()
-            
+
     # Stop streaming
     pipeline.stop()
     print("Stream stopped")
