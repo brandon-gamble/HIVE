@@ -137,17 +137,34 @@ def get_curr_frame(pipeline):
     frames = pipeline.wait_for_frames()
     depth_frame = frames.get_depth_frame()
     color_frame = frames.get_color_frame()
+    # depth: <class 'pyrealsense2.pyrealsense2.depth_frame'>
+    # color: <class 'pyrealsense2.pyrealsense2.video_frame'>
 
     # Convert images to numpy arrays
     depth_image = np.asanyarray(depth_frame.get_data())
     color_image = np.asanyarray(color_frame.get_data())
+    # depth: <class 'numpy.ndarray'>
+    # color: <class 'numpy.ndarray'>
 
-    # # Stack into RGBD image
-    # RGBD_image = np.dstack((color_image,depth_image))
-
+    frame_pair = (color_frame, depth_frame)
     image_pair = (color_image, depth_image)
 
     return image_pair
+
+def get_aligned_frame(pipeline):
+    align = rs.align(rs.stream.depth)
+
+    frames = pipeline.wait_for_frames()
+    frames = align.process(frames)
+
+    aligned_color_frame = frames.get_color_frame()
+
+    color_image = np.asanyarray(aligned_color_frame.get_data())
+    depth_image = np.asanyarray(frames.get_depth_frame().get_data())
+
+    pair = (color_image, depth_image)
+
+    return pair
 
 def main():
     # Configure depth and color streams
