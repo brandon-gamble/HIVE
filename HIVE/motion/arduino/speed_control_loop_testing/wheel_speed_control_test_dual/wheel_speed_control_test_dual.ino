@@ -125,6 +125,7 @@ float *omega_r_ptr;
 
 void setup() {
     Serial.begin(38400);
+//    Serial.begin(9600);
     Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
     Serial.println("UPLOAD DATE: 2023 DEC 10");
     Serial.println("BAUD 38400");
