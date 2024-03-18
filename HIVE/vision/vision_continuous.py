@@ -124,7 +124,7 @@ def detect_aruco(image_pair, cloud_param, visualize=False):
             # end of visualization routine
 
     # else:
-        # print("no markers detected")
+    #     print("no markers detected")
 
     if visualize is True:
         print("all markers displayed")
