@@ -34,12 +34,13 @@ wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
 # max speed
-s_max_mps = 2.0         # [m/s]
-omega_max = 5           # [rad/s]
+s_max_mps = 1.0         # [m/s]   max speed of vehicle
+omega_max = 5           # [rad/s] max omega of vehicle
+omega_motor_max = 40    # [rad/s] max omega of motors
 
 # proportional controllers
 kp_speed = 0.0015 # 0002 good in isolation
-kp_heading = .01 # 0.01, 0.015 good in isolation [with pixel heading]
+kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 #kp_speed = 0
 #kp_heading = 0
 
@@ -52,7 +53,7 @@ markers = []
 # control timer
 # t_controller =
 
-follow_dist_mm = 250
+follow_dist_mm = 300 # nose: 250 // center: 300, 
 
 # set camera specs
 wp = 640
@@ -113,7 +114,7 @@ pipeline.start(config)
         # cmd_l = command_l,
         # cmd_r = command_r))
 
-print("Dist [mm], Head [rad], s_des [m/s], omega_l_des [rad/s], omega_r_des [rad/s]")
+print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
         # h = head_px,
         # s = s_des,
@@ -197,9 +198,13 @@ while True:
         s_des = min(s_des, s_max_mps)
         omega_des = min(omega_des, omega_max)
 
-        # comptue desired motor speeds
+        # compute desired motor speeds
         omega_l_des = (s_des - omega_des*wheel_base_m/2) / tire_radius_m
         omega_r_des = (s_des + omega_des*wheel_base_m/2) / tire_radius_m
+
+        # apply max cutoff to motor speed (keep vehicle from running away)
+        omega_l_des = min(omega_l_des, omega_motor_max)
+        omega_r_des = min(omega_r_des, omega_motor_max)
 
         ####################################################
         #            send actuator commands                #

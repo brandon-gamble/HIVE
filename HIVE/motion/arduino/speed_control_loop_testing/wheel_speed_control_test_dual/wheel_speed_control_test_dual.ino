@@ -88,14 +88,14 @@ boolean new_data = false;
 ////////////////////////////
 // CONTROL LOOP VARIABLES //
 ////////////////////////////
-// motor parameters
-#define J_L 1
-#define K_L 1.809
-#define B_L 16.17
-
-#define J_R 1
-#define K_R 1.809
-#define B_R 16.17
+// motor parameters (ONLY FOR REFERENCE) !!!
+//#define J_L 1
+//#define K_L 1.809
+//#define B_L 16.17
+//
+//#define J_R 1
+//#define K_R 1.809
+//#define B_R 16.17
 
 // controller parameters
 #define KI_L 0.02
@@ -103,6 +103,25 @@ boolean new_data = false;
 
 #define KI_R 0.02
 #define KP_R 0.8
+
+///////////////////////////////////////
+// OLD MOTOR PARAMS AND CONTROL VALS //
+///////////////////////////////////////
+/*
+(J ALWAYS = 1)
+----------------------------------------------
+  DATE   |      LEFT       |      RIGHT
+         |    K      B     |    K      B
+----------------------------------------------
+23-12-06 |  1.809,  16.17  |  1.809,  16.17  |
+
+----------------------------------------------
+  DATE   |       LEFT     |       RIGHT
+         |    KI      KP  |     KI      KP
+----------------------------------------------
+23-12-06 |  0.020,  0.800  |  0.020,  0.800  |
+
+*/
 
 // controller variables
 float omega_l = 0.0;
@@ -127,7 +146,7 @@ void setup() {
     Serial.begin(38400);
 //    Serial.begin(9600);
     Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
-    Serial.println("UPLOAD DATE: 2023 DEC 10");
+    Serial.println("UPLOAD DATE: 2024 MAR 19");
     Serial.println("BAUD 38400");
 
     Serial.print("KI_L: ");
