@@ -15,9 +15,10 @@ void loop() {
 //  Serial.print("\t");
 //  Serial.println(yValue);
 
-  int ledValue = map(xValue, 0, 1023, 0,255);
+//  int ledValue = map(xValue, 0,1023, 0,255);
+  int ledValue = map(xValue, 530,6, 0,250);
   String ledCommand = "<" + String(ledValue) + ">";
   Serial.println(ledCommand);
-  delay(20); // at 9600 baud, cannot decrease delay less than 20ms
+  delay(30); // at 9600 baud, cannot decrease delay less than 20ms
 
 }
