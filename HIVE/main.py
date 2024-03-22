@@ -141,7 +141,7 @@ dist_mm = follow_dist_mm
 
 while True:
     # get images (depth and color) from camera
-    image_pair = vision.get_curr_frame(pipeline)
+    image_pair = vision.get_aligned_frame(pipeline)
     depth_image = image_pair[1]
     color_image = image_pair[0]
 
@@ -150,7 +150,7 @@ while True:
     theta_fov_depth = math.radians(87)
 
     # detect markers in images
-    markers = vision.detect_aruco(image_pair, (10, 2), visualize=False)
+    markers = vision.detect_aruco(image_pair, visualize=False)
         # id = markers[0][0],   id,       [-]
         # x = markers[0][1][0], y,        [px]
         # y = markers[0][1][1], x,        [px]
@@ -180,11 +180,6 @@ while True:
         # px2rad also takes an array, so need to wrap heading value in array
         # finally, px2rad spits out array, so need to unwrap to just a float by indexing first value [0]
         head_rad = px2rad(np.array([head_px+wp/2]), wp, theta_fov_depth)[0]
-
-    # else:
-        # if no markers detected, then trick controller into stopping
-        # dist_mm = follow_dist_mm
-        # head_px = 0
 
         ####################################################
         #            outer loop controller                 #
@@ -233,6 +228,15 @@ while True:
         # send commands
         messenger.send_msg(ser,command_l)
         messenger.send_msg(ser,command_r)
+
+        # if no markers detected, then trick controller into stopping
+        s_des = 0
+        omega_des = 0
+        omega_l_des = 0
+        omega_r_des = 0
+        
+        # dist_mm = follow_dist_mm
+        # head_px = 0
 
         # if standby_flag == False:
         #     messenger.send_msg(ser,'<S,1>')
