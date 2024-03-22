@@ -53,7 +53,7 @@ markers = []
 # control timer
 # t_controller =
 
-follow_dist_mm = 300 # nose: 250 // center: 300, 
+follow_dist_mm = 300 # nose: 250 // center: 300,
 
 # set camera specs
 wp = 640
@@ -162,13 +162,16 @@ while True:
         markers = np.asarray(markers)
 
         # if multiple markers detected (e.g. marker on back of leader and side of leader)
-        # then take the average position of them
+        # then take the average and min position of them
         markers_avg = np.mean(markers, axis=0)
+        markers_min = np.min(markers, axis=0)
 
         # extract distance and heading detected in image
         # flip sign of heading so that targ to right gives (-),
         #   and targ to left give (+)
-        dist_mm = markers_avg[3]    # distance to aruco [mm]
+        # taking MINIMUM distance to avoid lurching when additional markers are detected
+        # taking AVERAGE heading to help steer... may need to change this to min as well? needs testing
+        dist_mm = markers_min[3]    # distance to aruco [mm]
         head_px = -1*markers_avg[4] # heading to aruco  [px]
 
         # need to do some tomfoolery to convert from pixel heading to radian heading:
