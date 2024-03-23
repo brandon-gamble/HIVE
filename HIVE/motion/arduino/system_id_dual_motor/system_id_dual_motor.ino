@@ -91,7 +91,7 @@ float elapsed_time_sec = 0;
 
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(38400);
     Serial.println("PROGRAM: system_id_dual_motor.ino");
     Serial.println("UPLOAD DATE: 2024 MAR 19");
 

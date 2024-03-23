@@ -44,8 +44,8 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 
 void setup(){
-//    Serial.begin(38400);
-    Serial.begin(9600);
+    Serial.begin(38400);
+//    Serial.begin(9600);
 
     // disable standby (turn on motors)
     tread_left.standby(LOW);

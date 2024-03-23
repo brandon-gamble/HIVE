@@ -18,7 +18,7 @@ int y_lo = 0;
 int y_hi = 0;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(38400);
 
   // find values at joystick rest
   xCenter = analogRead(joyX);

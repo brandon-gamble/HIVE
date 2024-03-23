@@ -17,7 +17,7 @@ byte index;     //Index of array
 
 void setup() {
   //Start the serial communication
-  Serial.begin(9600); //Baud rate must be the same as is on xBee module
+  Serial.begin(38400); //Baud rate must be the same as is on xBee module
   pinMode(ledPin, OUTPUT);
 }
 
