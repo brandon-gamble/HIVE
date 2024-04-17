@@ -52,7 +52,7 @@ void setup(){
     tread_right.standby(LOW);
 
     Serial.println("PROGRAM: serial_motor_control.ino");
-    Serial.println("UPLOAD: 2022-04-05");
+    Serial.println("UPLOAD: 2022-04-15");
 
     Serial.print("flag: ");
     Serial.println(flag);

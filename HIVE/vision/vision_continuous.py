@@ -70,7 +70,8 @@ def detect_aruco(image_pair, visualize=False):
             # compute heading (pixel)
             heading_p = cX - image_center_x
 
-            markers.append([markerID,cX,cY,d,heading_p])
+            # markers.append([markerID,cX,cY,d,heading_p])
+            markers.append([markerID,cX,cY,d,heading_p,topLeft[0],topLeft[1],topRight[0],topRight[1],botRight[0],botRight[1],botLeft[0],botLeft[1]])
 
             if visualize is True:
                 # draw bounding box
