@@ -47,7 +47,7 @@ class LaserSensor:
                     if (color[0], color[1], color[2]) == (0, 0, 0):
 
                         distance = self.distance((x, y))
-                        print('obs hit at angle:' + str(angle))
+                        # print('obs hit at angle:' + str(angle))
 
                         output = uncertainty_add(distance, angle, self.sigma)
                         output.append(self.position)

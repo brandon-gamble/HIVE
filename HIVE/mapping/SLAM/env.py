@@ -29,8 +29,8 @@ class buildEnvironment:
         return (int(x), int(y))
 
     def data_storage(self, data):
-        print(len(self.pointCloud))
-        print("data -->", data)
+        # print(len(self.pointCloud))
+        # print("data -->", data)
 
         for element in data:
             point = self.ad2pos(element[0], element[1], element[2])

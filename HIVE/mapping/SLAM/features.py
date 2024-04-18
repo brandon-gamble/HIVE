@@ -3,19 +3,21 @@ import math
 from fractions import Fraction
 from scipy.odr import *
 
+# https://www.youtube.com/watch?v=oux9LfdqFm4&list=PL9RPomGb9IpRJLw5UTdSy4eJeoLrwNcfC&index=4&ab_channel=MouadBoumediene-HobbyCoding
+
 class featureDetection:
     def __init__(self):
         self.EPSILON = 10
         self.DELTA = 501
         self.SNUM = 6
-        self.PMIN = 20
-        self.GMAX = 20 # maximum line growth distance
+        self.PMIN = 5 # 20 # min number of points in seg
+        self.GMAX = 20 # largest allowable gap between segments (i.e. door/window size)
         self.SEED_SEGMENTS = []
         self.LINE_SEGMENTS = []
         self.LASERPOINTS = []
         self.LINE_PARAMS = None
         self.NP = len(self.LASERPOINTS) - 1 # number of LIDAR data points
-        self.LMIN = 20 # min length of line segment
+        self.LMIN = 10 # 20 # min length of line segment
         self.LR = 0 # actual length of line segment
         self.PR = 0 # number of laser points in line segment
 
@@ -150,9 +152,9 @@ class featureDetection:
     #       main methods #
     ########################################
 
-    def seed_segment_detection(self, robot_position, break_point_ind):
+    def seed_segment_detection(self, robot_position, break_point_ind): # 13:00
         flag = True
-        self.NP = max(0, self.NP)
+        self.NP = max(0, self.NP) # make sure not negative
         self.SEED_SEGMENTS = []
         for i in range(break_point_ind, (self.NP - self.PMIN)):
             predicted_points_to_draw = []
@@ -170,6 +172,7 @@ class featureDetection:
                     flag = False
                     break
                 d2 = self.dist_point2line(params, self.LASERPOINTS[k][0]) # 14:16... predicted_point is arg??
+                # d2 = self.dist_point2line(params, predicted_point)
 
                 if d2 > self.EPSILON:
                     flag = False
@@ -178,15 +181,20 @@ class featureDetection:
             if flag:
                 self.LINE_PARAMS = params
                 return [self.LASERPOINTS[i:j], predicted_points_to_draw, (i,j)]
+                # self.LASERPOINTS[i:j]       detected segment
+                # predicted_points_to_draw    predicted points
+                # (i,j)                       start/end indices of seed segment
 
         return False
 
     def seed_segment_growing(self, indices, break_point):
+        print("FEATURES.PY .. trying to grow")
         line_eq = self.LINE_PARAMS
         i, j = indices
 
-        PB, PF = max(break_point, i-1), min(j+1, len(self.LASERPOINTS) - 1)
+        PB, PF = max(break_point, i-1), min(j+1, len(self.LASERPOINTS)-1)
 
+        print("FEATURES.PY .. growing first dir")
         while self.dist_point2line(line_eq, self.LASERPOINTS[PF][0]) < self.EPSILON:
             if PF > self.NP - 1:
                 break
@@ -204,6 +212,7 @@ class featureDetection:
 
             PF = PF - 1
 
+            print("FEATURES.PY .. growing second dir")
             while self.dist_point2line(line_eq, self.LASERPOINTS[PB][0]):
                 if PB < break_point:
                     break
@@ -222,8 +231,11 @@ class featureDetection:
 
             LR = self.dist_point2point(self.LASERPOINTS[PB][0], self.LASERPOINTS[PF][0])
             PR = len(self.LASERPOINTS[PB:PF])
+            print("FEATURES.PY .. length of segment grown (LR): ", LR)
+            print("FEATURES.PY .. number of points in segment (PR): ", PR)
 
             if (LR >= self.LMIN) and (PR >= self.PMIN):
+                print("FEATURES.PY .. segment meets LMIN and PMIN. successfully created!")
                 self.LINE_PARAMS = line_eq
                 m, b = self.lineForm_G2SI(line_eq[0], line_eq[1], line_eq[2])
                 self.two_points = self.line_2points(m, b)
@@ -231,5 +243,6 @@ class featureDetection:
                 return [self.LASERPOINTS[PB:PF], self.two_points,
                 (self.LASERPOINTS[PB + 1][0], self.LASERPOINTS[PF-1][0]), PF, line_eq, (m, b)]
             else:
-                # return False
-                return []
+                print("FEATURES.PY .. failed to grow segment")
+                return False
+                # return []
