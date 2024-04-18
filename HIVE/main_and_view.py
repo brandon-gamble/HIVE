@@ -53,7 +53,7 @@ markers = []
 # control timer
 # t_controller =
 
-follow_dist_mm = 300 # nose: 250 // center: 300,
+follow_dist_mm = 500 # nose: 250 // center: 300,
 
 # set camera specs
 wp = 640
@@ -215,6 +215,9 @@ try:
             omega_l_des = 0
             omega_r_des = 0
 
+            dist_mm = 0
+            head_rad = 0
+
 
         #######################################################################################
         # put together view window #
@@ -223,12 +226,18 @@ try:
         [color_unaligned,_] = vision.get_curr_frame(pipeline)
 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.08)
+        #################
+        #  good alphas  #
+        # ------------- #
+        # 0.08 standard (all looks blue)
+        # 0.3  good depth of field
+        #################
+        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.3)
         depth_colormap = cv2.applyColorMap(scaled_depth, cv2.COLORMAP_JET)
 
-        #############
-        # markers?? #
-        #############
+        ###########
+        # markers #
+        ###########
         if markers_list:
             for mark in markers:
                 for img in [color_image, depth_colormap]:
@@ -238,16 +247,13 @@ try:
                     cv2.line(img, (mark[9], mark[10]), (mark[11], mark[12]), (0,255,0), 2)
                     cv2.line(img, (mark[11], mark[12]), (mark[5], mark[6]), (0,255,0), 2)
 
-
-        # Stack both images horizontally
+        # Stack images horizontally
         images = np.hstack((color_unaligned,color_image, depth_colormap))
-
 
         # Show images
         cv2.imshow('RealSense', images)
 
-
-        k = cv2.waitKey(1) & 0xFF
+        k = cv2.waitKey(1) & 0xFF # escape key to stop
         if k == 27:
             break
 
@@ -264,7 +270,15 @@ try:
             o_r = omega_r_des,))
 
 finally:
-
+    # make command strings
+    command_l = '<L,0>'
+    command_r = '<R,0>'
+    # send commands
+    messenger.send_msg(ser,command_l)
+    messenger.send_msg(ser,command_r)
+    messenger.send_msg(ser,'<S,1>')
+    
+    print("HIVE stopped.")
     # Stop streaming
     pipeline.stop()
-    print("Stream stopped")
+    print("Stream stopped.")
