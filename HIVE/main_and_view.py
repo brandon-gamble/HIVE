@@ -232,7 +232,7 @@ try:
         # 0.08 standard (all looks blue)
         # 0.3  good depth of field
         #################
-        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.3)
+        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.08)
         depth_colormap = cv2.applyColorMap(scaled_depth, cv2.COLORMAP_JET)
 
         ###########

@@ -1,0 +1,29 @@
+24-04-19 notes on field test recordings 
+test at doubletree culvert, 30" concrete round
+
+9x16	too bright, doesn't follow - adjust follower flashlight midway
+	backup goes sideways
+
+9x59	1:18 setup
+	slow driving, poor tracking
+	back up into follower
+
+9x36	cut test short
+
+9x20	follow a little jerky
+	good video panning of leader -> demonstrates glare effect (see note)
+	good backup
+
+9x45	tried to drive really fast away but follower kept up for most of it
+	good backup sequence
+	1:50 second chase
+
+9x37	video transmission dist test - made it to end of 50' tagline easily
+	video freezes at end of test when tank has returned
+
+	
+
+
+notes:
+- noticed that when marker is perpendicular to flashlight there is a glare that makes it difficult to detect. when turret is turned slightly to side the glare is reduced dramatically and detection is significantly better
+

@@ -3,7 +3,7 @@ import math
 from fractions import Fraction
 from scipy.odr import *
 
-# https://www.youtube.com/watch?v=oux9LfdqFm4&list=PL9RPomGb9IpRJLw5UTdSy4eJeoLrwNcfC&index=4&ab_channel=MouadBoumediene-HobbyCoding
+Landmarks = []
 
 class featureDetection:
     def __init__(self):
@@ -246,3 +246,48 @@ class featureDetection:
                 print("FEATURES.PY .. failed to grow segment")
                 return False
                 # return []
+
+    ################################################################
+    # slam stuff
+
+    def lineFeats2point(self):
+        new_rep = []
+
+        for feature in self.FEATURES:
+            projection = self.projection_point2line((0,0), feature[0][0], feature[0][1])
+            new_rep.append([feature[0], feature[1], projection])
+
+        return new_rep
+
+def landmark_association(landmarks):
+    thresh = 10
+    for l in landmarks:
+
+        flag = False
+        for l, Landmark in enumerate(Landmarks):
+            dist = featureDetection.dist_point2line(l[2], Landmark[2])
+            if dist < thresh:
+                if not is_overlap(l[1], Landmark[1]):
+                    continue
+                else:
+                    Landmarks.pop(i)
+                    Landmarks.insert(i, l)
+
+                    break
+
+        if not flag:
+            Landmarks.append(l)
+
+def is_overlap(seg1, seg2):
+    length1 = featureDetection.dist_point2point(seg1[0], seg1[1])
+    length2 = featureDetection.dist_point2point(seg2[0], seg2[1])
+
+    center1 = ((seg1[0][0] + seg1[1][0])/2, (seg1[0][1] + seg1[1][1]) / 2)
+    center2 = ((seg2[0][0] + seg2[1][0])/2, (seg2[0][1] + seg2[1][1]) / 2)
+
+    dist = featureDetection.dist_point2point(center1, center2)
+
+    if dist > (length1 + length2)/2:
+        return False
+    else:
+        return True
