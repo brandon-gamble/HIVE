@@ -43,8 +43,8 @@ int curr_command_val = 0;
 #define ENC_0_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-//const float ENC_0_GEAR_RATIO = 0.86253;
-const float ENC_0_GEAR_RATIO = 1;
+const float ENC_0_GEAR_RATIO = 0.86253;
+//const float ENC_0_GEAR_RATIO = 1;
 
 // encoder outout A to arduino
 #define ENC_0_INA 2
@@ -63,8 +63,8 @@ float omega_enc_0 = 0;
 #define ENC_1_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-//const float ENC_1_GEAR_RATIO = 1.1428;
-const float ENC_1_GEAR_RATIO = 1;
+const float ENC_1_GEAR_RATIO = 1.1428;
+//const float ENC_1_GEAR_RATIO = 1;
 
 // encoder outout A to arduino
 #define ENC_1_INA 3
