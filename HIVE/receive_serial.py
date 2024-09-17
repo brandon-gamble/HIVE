@@ -51,20 +51,20 @@ if __name__ == '__main__':
     #ser = initialize_com(9600);
     ser = initialize_com(38400);
 
-    print("omega_l_des [rad/s], omega_l [rad/s], error_l [rad/s], u_integral_l , u_l [8bit], omega_r_des [rad/s], omega_r [rad/s], error_r [rad/s], u_integral_r , u_r [8bit]");
+    # print("omega_l_des [rad/s], omega_l [rad/s], error_l [rad/s], u_integral_l , u_l [8bit], omega_r_des [rad/s], omega_r [rad/s], error_r [rad/s], u_integral_r , u_r [8bit]");
 
-    msg = input('pc to duino: ')
-    send_msg(ser,msg)
+    #msg = input('pc to duino: ')
+    #send_msg(ser,msg)
 
     while True:
         # case 1 - only receive
-        #receive_msg(ser)
-        #time.sleep(0.1)
+        receive_msg(ser)
+        time.sleep(0.1)
 
         # case 2 - send and receive
         #echo(ser)
         #time.sleep(1)
 
         # case 3 - only send
-        msg = input('pc to duino: ')
-        send_msg(ser,msg)
+        #msg = input('pc to duino: ')
+        #send_msg(ser,msg)

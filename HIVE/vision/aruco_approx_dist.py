@@ -5,7 +5,7 @@ import argparse
 import imutils
 import sys
 
-def detect_aruco(image_pair, visualize=False):
+def detect_aruco(image_pair, visualize=False, printout=False):
     #######################
     ## def, load, detect ##
     #######################
@@ -72,14 +72,6 @@ def detect_aruco(image_pair, visualize=False):
 
             # markers.append([markerID,cX,cY,d,heading_p])
             markers.append([markerID,cX,cY,d,heading_p,topLeft[0],topLeft[1],topRight[0],topRight[1],botRight[0],botRight[1],botLeft[0],botLeft[1]])
-            # [0] markerID,
-            # [1,2]   cX,cY,
-            # [3]     d,
-            # [4]     heading_p,
-            # [5,6]   topLeft[0],topLeft[1],
-            # [7,8]   topRight[0],topRight[1],
-            # [9,10]  botRight[0],botRight[1],
-            # [11,12] botLeft[0],botLeft[1]
 
             if visualize is True:
                 # draw bounding box
@@ -96,6 +88,13 @@ def detect_aruco(image_pair, visualize=False):
                     (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (0,255,0), 2)
 
+                # show image
+                cv2.imshow("image",color_image)
+                cv2.waitKey(0)
+
+            # end of visualization routine
+
+            if printout is True:
                 # print out
                 print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
                     id = markerID,
@@ -104,15 +103,12 @@ def detect_aruco(image_pair, visualize=False):
                     d = d,
                     h = heading_p))
 
-                # show image
-                cv2.imshow("image",color_image)
-                cv2.waitKey(0)
-            # end of visualization routine
+
 
     # else:
     #     print("no markers detected")
 
-    if visualize is True:
+    if printout is True:
         print("all markers displayed")
         cv2.waitKey(0)
 
@@ -302,12 +298,55 @@ def px2rad(px, wp, theta_fov):
 
     return theta
 
+def approx_dist(image_pair, theta_fov, marker_size, marker):
+
+    color_image = image_pair[0]
+    image_width = int(color_image.shape[1])
+    image_center_x = int(image_width/2)
+
+    yp = image_width / (2*np.tan(theta_fov/2))
+
+    theta = np.arctan(abs(marker[1]-image_center_x)/yp)
+
+    # calculate side lengths
+    x1 = marker[5]
+    y1 = marker[6]
+    x2 = marker[7]
+    y2 = marker[8]
+    marker_size_px_top = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[7]
+    y1 = marker[8]
+    x2 = marker[9]
+    y2 = marker[10]
+    marker_size_px_right = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[9]
+    y1 = marker[10]
+    x2 = marker[11]
+    y2 = marker[12]
+    marker_size_px_bot = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[11]
+    y1 = marker[12]
+    x2 = marker[5]
+    y2 = marker[6]
+    marker_size_px_left = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    marker_size_px_avg = (marker_size_px_top+marker_size_px_right+marker_size_px_bot+marker_size_px_left)/4
+
+    y = marker_size*yp/marker_size_px_avg
+
+    dist = y/np.cos(theta)
+
+    return dist
+
 def main():
     '''
-    1   detect with cloud average
-    2   detect with no cloud average
+    1   x
+    2   x
     '''
-    test_case = 2
+    test_case = 1
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -318,35 +357,30 @@ def main():
     # Start streaming
     pipeline.start(config)
 
-    print("ID | Loc [px] | Dist [mm] | Heading [px]")
-    print("----------------------------------------")
+    print("ID | Loc [px] | Dist [mm] | ~Dist [mm] | Error_d [%] | Heading [px]")
+    print("-------------------------------------------------------------------")
 
 
     while True:
         if test_case == 1:
-            image_pair = get_curr_frame(pipeline)
-            markers = detect_aruco_cloudAvg(image_pair, (10, 2), visualize=False)
+            # marker_size = 37.5 # mm
+            marker_size = 38.5 # mm
 
-            for marker in markers:
-                print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
-                    id = marker[0],
-                    x = marker[1],
-                    y = marker[2],
-                    d = marker[3],
-                    h = marker[4]))
-            input()
-
-        elif test_case == 2:
             image_pair = get_aligned_frame(pipeline)
-            markers = detect_aruco(image_pair, visualize=True)
+            markers = detect_aruco(image_pair, visualize=False)
 
             for marker in markers:
-                print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10}".format(
+                rough_dist = approx_dist(image_pair, 1.518, marker_size, marker)
+
+                print("{id:<3} ({x:3},{y:3}) {d:10.2f} {d_approx:11.2f} {error:14.2f} {h:10}".format(
                     id = marker[0],
                     x = marker[1],
                     y = marker[2],
                     d = marker[3],
+                    d_approx = rough_dist,
+                    error = 100*abs(rough_dist-marker[3])/marker[3],
                     h = marker[4]))
+
             input()
 
     # Stop streaming

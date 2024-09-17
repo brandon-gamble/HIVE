@@ -22,7 +22,9 @@ long currentMillis = 0;
 float omega = 0;
 
 void setup() {
-    Serial.begin(9600);
+//    Serial.begin(9600);
+    Serial.begin(38400);
+    Serial.println("beginning encoder test");
 
     // set encoder pin as input
     pinMode(ENC_INA, INPUT_PULLUP);
