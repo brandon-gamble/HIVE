@@ -341,10 +341,51 @@ def approx_dist(image_pair, theta_fov, marker_size, marker):
 
     return dist
 
+def approx_dist_simp(image_pair, theta_fov, marker_size, marker):
+
+    color_image = image_pair[0]
+    image_width = int(color_image.shape[1])
+    image_center_x = int(image_width/2)
+
+    yp = image_width / (2*np.tan(theta_fov/2))
+
+    # calculate side lengths
+    x1 = marker[5]
+    y1 = marker[6]
+    x2 = marker[7]
+    y2 = marker[8]
+    marker_size_px_top = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[7]
+    y1 = marker[8]
+    x2 = marker[9]
+    y2 = marker[10]
+    marker_size_px_right = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[9]
+    y1 = marker[10]
+    x2 = marker[11]
+    y2 = marker[12]
+    marker_size_px_bot = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[11]
+    y1 = marker[12]
+    x2 = marker[5]
+    y2 = marker[6]
+    marker_size_px_left = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    marker_size_px_avg = (marker_size_px_top+marker_size_px_right+marker_size_px_bot+marker_size_px_left)/4
+
+    xp = abs(marker[1]-image_center_x)
+
+    dist = marker_size*yp/marker_size_px_avg*((1+(xp/yp)**2)**0.5)
+
+    return dist
+
 def main():
     '''
-    1   x
-    2   x
+    1   original implementation
+    2   "simplified" equation compared to original - should be EQUAL
     '''
     test_case = 1
 
@@ -381,7 +422,25 @@ def main():
                     error = 100*abs(rough_dist-marker[3])/marker[3],
                     h = marker[4]))
 
-            input()
+            # input()
+
+        if test_case == 2:
+            # marker_size = 37.5 # mm
+            marker_size = 38.5 # mm
+
+            image_pair = get_aligned_frame(pipeline)
+            markers = detect_aruco(image_pair, visualize=False)
+
+            for marker in markers:
+                rough_dist = approx_dist(image_pair, 1.518, marker_size, marker)
+                rough_dist_2 = approx_dist_simp(image_pair, 1.518, marker_size, marker)
+
+                print("{d1:10.2f} {d2:10.2f} {e:5.2f}".format(
+                    d1 = rough_dist,
+                    d2 = rough_dist_2,
+                    e = abs(rough_dist-rough_dist_2)))
+
+            # input()
 
     # Stop streaming
     pipeline.stop()
