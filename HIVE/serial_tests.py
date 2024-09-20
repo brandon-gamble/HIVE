@@ -57,5 +57,14 @@ if __name__ == '__main__':
     #send_msg(ser,msg)
 
     while True:
+        # case 1 - only receive
+        # receive_msg(ser)
+        #time.sleep(0.1)
 
-        receive_msg(ser)
+        # case 2 - send and receive
+        echo(ser)
+        #time.sleep(1)
+
+        # case 3 - only send
+        #msg = input('pc to duino: ')
+        #send_msg(ser,msg)
