@@ -277,7 +277,7 @@ finally:
     messenger.send_msg(ser,command_l)
     messenger.send_msg(ser,command_r)
     messenger.send_msg(ser,'<S,1>')
-    
+
     print("HIVE stopped.")
     # Stop streaming
     pipeline.stop()

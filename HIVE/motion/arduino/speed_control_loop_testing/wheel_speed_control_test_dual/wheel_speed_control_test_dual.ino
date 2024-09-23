@@ -146,7 +146,7 @@ void setup() {
     Serial.begin(38400);
 //    Serial.begin(9600);
     Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
-    Serial.println("UPLOAD DATE: 2024 MAR 19");
+    Serial.println("UPLOAD DATE: 2024 SEP 23");
     Serial.println("BAUD 38400");
 
     Serial.print("KI_L: ");
