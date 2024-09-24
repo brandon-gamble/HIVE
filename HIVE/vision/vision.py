@@ -150,6 +150,21 @@ def get_curr_frame(pipeline):
 
     return image_pair
 
+def get_aligned_frame(pipeline):
+    align = rs.align(rs.stream.depth)
+
+    frames = pipeline.wait_for_frames()
+    frames = align.process(frames)
+
+    aligned_color_frame = frames.get_color_frame()
+
+    color_image = np.asanyarray(aligned_color_frame.get_data())
+    depth_image = np.asanyarray(frames.get_depth_frame().get_data())
+
+    pair = (color_image, depth_image)
+
+    return pair
+
 def main():
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -160,8 +175,11 @@ def main():
     # Start streaming
     pipeline.start(config)
 
-    image_pair = get_curr_frame(pipeline)
-    markers = detect_aruco(image_pair, (10, 2), visualize=True)
+    markers = []
+
+    while len(markers) == 0:
+        image_pair = get_aligned_frame(pipeline)
+        markers = detect_aruco(image_pair, (10, 2), visualize=True)
 
     print("ID | Loc [px] | Dist [mm] | Heading [px]")
     print("----------------------------------------")

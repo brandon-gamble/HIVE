@@ -72,6 +72,13 @@ def detect_aruco(image_pair, visualize=False, printout=False):
 
             # markers.append([markerID,cX,cY,d,heading_p])
             markers.append([markerID,cX,cY,d,heading_p,topLeft[0],topLeft[1],topRight[0],topRight[1],botRight[0],botRight[1],botLeft[0],botLeft[1]])
+            # 0     markerID,
+            # 1,2   cX,cY,
+            # 3,4   d,heading_p,
+            # 5,6   topLeft[0],topLeft[1],
+            # 7,8   topRight[0],topRight[1],
+            # 9,10  botRight[0],botRight[1],
+            # 11,12 botLeft[0],botLeft[1]
 
             if visualize is True:
                 # draw bounding box
@@ -342,6 +349,7 @@ def approx_dist(image_pair, theta_fov, marker_size, marker):
     return dist
 
 def approx_dist_simp(image_pair, theta_fov, marker_size, marker):
+    # NOTE: marker size INCLUDES padding, because detection algorithm finds box around padding
 
     color_image = image_pair[0]
     image_width = int(color_image.shape[1])
