@@ -151,9 +151,13 @@ def main():
             - 3d color map (not really useful),
             - color image (aligned)
             - slices from map
-    03  converts
+    03  3 horizontal slices of depth
+    04  3 vertical   slices of depth
+    05  # vertical   slices of depth
+    06  # vertical   slices of depth AND "deriv" AND slope
+    07  # vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison
     '''
-    test_case = 3
+    test_case = 8
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -236,7 +240,7 @@ def main():
             x_array = px2rad(x_array, wp, theta_fov_depth)
 
             # set slice locations
-            a_px = 150
+            # a_px = 150
             a_px = 175
             b_px = 225
             c_px = 300
@@ -266,10 +270,307 @@ def main():
             plt.plot(np.degrees(data_b[0,:]), data_b[1,:], label=str(b_px)+' [px]')
             plt.plot(np.degrees(data_c[0,:]), data_c[1,:], label=str(c_px)+' [px]')
 
-            plt.xlabel('x [deg]')
+            plt.xlabel('yaw [deg]')
             plt.ylabel('depth [mm]')
             plt.legend()
             plt.title('Realsense FOV depth slice [mm]')
+            plt.show()
+
+    elif test_case == 4:
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # set camera specs
+            wp = 640
+            hp = 480
+            theta_fov_depth_horiz = math.radians(87)
+            theta_fov_depth_vert = math.radians(58)
+
+            # plot color image
+            plt.imshow(color_image)
+            plt.show()
+
+            # plot depth image
+            plot_image_2d(depth_image)
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # titt up
+            y_array = np.flip(y_array)
+
+            # set slice locations
+            a_px = 290
+            b_px = 290
+            c_px = 290
+
+            # get vertical slices (constant x)
+            x_slice_a = depth_image[:,a_px]
+            x_slice_b = depth_image[:,b_px]
+            x_slice_c = depth_image[:,c_px]
+
+            # put into pairs [rad, depth]
+            data_a = np.array([y_array,x_slice_a])
+            data_b = np.array([y_array,x_slice_b])
+            data_c = np.array([y_array,x_slice_c])
+
+            # remove zeros from each set
+            mask_a = data_a[1,:] != 0
+            data_a = data_a[:, mask_a]
+
+            mask_b = data_b[1,:] != 0
+            data_b = data_b[:, mask_b]
+
+            mask_c = data_c[1,:] != 0
+            data_c = data_c[:, mask_c]
+
+            # plot masked slices
+            plt.plot(np.degrees(data_a[0,:]), data_a[1,:], '.', label=str(a_px)+' [px]')
+            plt.plot(np.degrees(data_b[0,:]), data_b[1,:], '.', label=str(b_px)+' [px]')
+            plt.plot(np.degrees(data_c[0,:]), data_c[1,:], '.', label=str(c_px)+' [px]')
+
+            plt.xlabel('pitch [deg]')
+            plt.ylabel('depth [mm]')
+            plt.legend()
+            plt.title('Realsense FOV vertical depth slice [mm]')
+            plt.show()
+
+    elif test_case == 5:
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # set camera specs
+            wp = 640
+            hp = 480
+            theta_fov_depth_horiz = math.radians(87)
+            theta_fov_depth_vert = math.radians(58)
+
+            # plot color image
+            plt.imshow(color_image)
+            plt.show()
+
+            # plot depth image
+            plot_image_2d(depth_image)
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # titt up
+            y_array = np.flip(y_array)
+
+            # set slice locations
+            slice_locs = [290, 300, 310, 320, 330, 340]
+
+            for loc in slice_locs:
+                # get vertical slice (constant x)
+                slice = depth_image[:,loc]
+
+                # put into pairs [rad,depth]
+                data = np.array([y_array, slice])
+
+                # remove zeros
+                mask = data[1,:] != 0
+                data = data[:,mask]
+
+                # plot
+                plt.plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
+
+            plt.xlabel('pitch [deg]')
+            plt.ylabel('depth [mm]')
+            plt.legend()
+            plt.title('Realsense FOV vertical depth slice [mm]')
+            plt.show()
+
+    elif (test_case == 6) or (test_case == 7):
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # set camera specs
+            wp = 640
+            hp = 480
+            theta_fov_depth_horiz = math.radians(87)
+            theta_fov_depth_vert = math.radians(58)
+
+            # plot color image
+            plt.imshow(color_image)
+            plt.show()
+
+            # plot depth image
+            plot_image_2d(depth_image)
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # titt up
+            y_array = np.flip(y_array)
+
+            fig, axs = plt.subplots(3,1)
+
+            # set slice locations
+            slice_locs = [290, 300, 310, 320, 330, 340]
+            slice_locs = [335]
+
+            for loc in slice_locs:
+                # get vertical slice (constant x)
+                slice = depth_image[:,loc]
+
+                # put into pairs [rad,depth]
+                data = np.array([y_array, slice])
+
+                # remove zeros
+                mask = data[1,:] != 0
+                data = data[:,mask]
+
+                # find diff between points (not quite derivative because of
+                # non uniform spacing due to mask)
+                nghbr_pxl_diff = np.diff(data[1,:])
+
+                # find slope (proper derivative)
+                slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
+                # slope = np.degrees(slope)                 # [mm/deg]
+
+                if test_case == 7:
+                    ##############################
+                    # smoothing the slope signal #
+                    ##############################
+                    kernel_sizes = [5,10,20,40,100]
+                    for k_size in kernel_sizes:
+                        kernel = np.ones(k_size) / k_size
+                        slope_smooth = np.convolve(slope, kernel, mode='same')
+                        axs[2].plot(np.degrees(data[0,:]), slope_smooth, label='k='+k_size)
+
+                # plot slice
+                axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
+
+                # plot "derive"
+                axs[1].plot(np.degrees(data[0,1:]), nghbr_pxl_diff, label=str(loc)+' [px]')
+
+                # plot slope
+                axs[2].plot(np.degrees(data[0,:]), slope, label=str(loc)+' [px]')
+
+            axs[0].set_xlabel('pitch [deg]')
+            axs[1].set_xlabel('pitch [deg]')
+            axs[2].set_xlabel('pitch [deg]')
+
+            axs[0].set_ylabel('depth [mm]')
+            axs[1].set_ylabel('difference between neighbors [mm]')
+            axs[2].set_ylabel('slope [mm/rad]')
+
+            # axs[0].title.set_text('Slice depth')
+            # axs[1].title.set_text('Pixel to Pixel change')
+            # axs[2].title.set_text('Slope')
+            axs[0].title.set_text('Obstacle Analysis: Vertical Depth Slices')
+
+            axs[0].legend()
+
+            axs[2].legend()
+
+            plt.show()
+
+    elif test_case == 8:
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # set camera specs
+            wp = 640
+            hp = 480
+            theta_fov_depth_horiz = math.radians(87)
+            theta_fov_depth_vert = math.radians(58)
+
+            # plot color image
+            plt.imshow(color_image)
+            plt.show()
+
+            # plot depth image
+            plot_image_2d(depth_image)
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # titt up
+            y_array = np.flip(y_array)
+
+            fig, axs = plt.subplots(3,1)
+
+            # set slice locations
+            slice_locs = [290, 300, 310, 320, 330, 340]
+            slice_locs = [335]
+
+            for loc in slice_locs:
+                # get vertical slice (constant x)
+                slice = depth_image[:,loc]
+
+                # put into pairs [rad,depth]
+                data = np.array([y_array, slice])
+
+                # remove zeros
+                mask = data[1,:] != 0
+                data = data[:,mask]
+
+                # find diff between points (not quite derivative because of
+                # non uniform spacing due to mask)
+                nghbr_pxl_diff = np.diff(data[1,:])
+
+                # find slope (proper derivative)
+                slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
+                # slope = np.degrees(slope)                 # [mm/deg]
+
+                ##############################
+                # smoothing the slope signal #
+                ##############################
+                kernel_size = 20
+                kernel = np.ones(kernel_size) / kernel_size
+                slope_smooth = np.convolve(slope, kernel, mode='same')
+
+                #plot slope
+                axs[2].plot(np.degrees(data[0,:]), slope_smooth, label=str(loc)+' [px], k='+str(kernel_size))
+
+                # plot slice
+                axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
+
+                # plot "derive"
+                axs[1].plot(np.degrees(data[0,1:]), nghbr_pxl_diff, label=str(loc)+' [px]')
+
+
+            axs[0].set_xlabel('pitch [deg]')
+            axs[1].set_xlabel('pitch [deg]')
+            axs[2].set_xlabel('pitch [deg]')
+
+            axs[0].set_ylabel('depth [mm]')
+            axs[1].set_ylabel('difference between neighbors [mm]')
+            axs[2].set_ylabel('slope [mm/rad]')
+
+            # axs[0].title.set_text('Slice depth')
+            # axs[1].title.set_text('Pixel to Pixel change')
+            # axs[2].title.set_text('Slope')
+            axs[0].title.set_text('Obstacle Analysis: Vertical Depth Slices')
+
+            axs[0].legend()
+
+            axs[2].legend()
+
+
+
             plt.show()
 
     # Stop streaming
