@@ -33,7 +33,7 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 // pulses per rev of encoder
 #define ENC_0_REV_COUNT 360
 // gear ratio between encoder and output shaft
-#define ENC_0_GEAR_RATIO 0.86253
+#define ENC_0_GEAR_RATIO 0.88949
 // encoder outout A to arduino
 #define ENC_0_INA 2
 // encoder pulse count
@@ -48,7 +48,7 @@ float omega_enc_0 = 0;
 // pulses per rev of encoder
 #define ENC_1_REV_COUNT 360
 // gear ratio between encoder and output shaft
-#define ENC_1_GEAR_RATIO 1.1428
+#define ENC_1_GEAR_RATIO 1.1786
 // encoder outout A to arduino
 #define ENC_1_INA 3
 // #define ENC_1_INB 4s
@@ -146,7 +146,7 @@ void setup() {
     Serial.begin(38400);
 //    Serial.begin(9600);
     Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
-    Serial.println("UPLOAD DATE: 2024 SEP 23");
+    Serial.println("UPLOAD DATE: 2024 SEP 30");
     Serial.println("BAUD 38400");
 
     Serial.print("KI_L: ");
