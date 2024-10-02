@@ -40,6 +40,13 @@ title('Motor speed');
 legend('\omega_L [rad/s]','\omega_R [rad/s]','Location','NorthWest');
 
 %% system id results (from system identification GUI)
+
+L_J = 2.896;
+L_K = 24.35;
+
+R_J = 3.143;
+R_K = 24.94;
+
 tf_L = tf(2.896, [1, 24.35]);
 tf_R = tf(3.143, [1, 24.94]);
 
@@ -88,17 +95,20 @@ plot(t_vec,L_omega) % plot experimental
 % plot first modeled step response, 50
 opt = stepDataOptions('StepAmplitude',50);
 [L_s1, L_t] = step(tf_L,25,opt);
-plot(L_t + 1*command_duration, L_s1)
+L_t_1 = L_t + 1*command_duration; % offset time to align with sysID timing
+plot(L_t_1, L_s1)
 
 % plot second modeled step response, 100
 opt = stepDataOptions('StepAmplitude',100);
 [L_s2, L_t] = step(tf_L,25,opt);
-plot(L_t + 2*command_duration, L_s2)
+L_t_2 = L_t + 2*command_duration; % offset time to align with sysID timing
+plot(L_t_2, L_s2)
 
 % plot third modeled step response, 200
 opt = stepDataOptions('StepAmplitude',200);
-[L_s4, L_t] = step(tf_L,25,opt);
-plot(L_t + 3*command_duration, L_s4)
+[L_s3, L_t] = step(tf_L,25,opt);
+L_t_3 = L_t + 3*command_duration; % offset time to align with sysID timing
+plot(L_t_3, L_s3)
                                
 ylabel('\omega [rad/s]')
 xlabel('time [s]')
@@ -115,15 +125,18 @@ plot(t_vec,R_omega)
                                 
 opt = stepDataOptions('StepAmplitude',50);
 [R_s1, R_t] = step(tf_R,25,opt);
-plot(R_t + 1*command_duration, R_s1)
+R_t_1 = R_t + 1*command_duration; % offset time to align with sysID timing
+plot(R_t_1, R_s1)
 
 opt = stepDataOptions('StepAmplitude',100);
 [R_s2, R_t] = step(tf_R,25,opt);
-plot(R_t + 2*command_duration, R_s2)
+R_t_2 = R_t + 2*command_duration; % offset time to align with sysID timing
+plot(R_t_2, R_s2)
 
 opt = stepDataOptions('StepAmplitude',200);
-[R_s4, R_t] = step(tf_R,25,opt);
-plot(R_t + 3*command_duration, R_s4)
+[R_s3, R_t] = step(tf_R,25,opt);
+R_t_3 = R_t + 3*command_duration; % offset time to align with sysID timing
+plot(R_t_3, R_s3)
                                 % labels
 ylabel('\omega [rad/s]')
 xlabel('time [s]')
@@ -138,6 +151,51 @@ y0= 250;
 width = 750;
 height = 315;
 set(gcf, 'units', 'points','position',[x0,y0,width,height])
+
+%% export data to be plotted in python
+clc
+
+date = input("Enter date string: ",'s');
+
+% put 3 steps into array (model data)
+left_model_data = [L_t_1, L_s1, ...
+    L_t_2, L_s2, ...
+    L_t_3, L_s3];
+% convert to table
+left_model_table = array2table(left_model_data);
+% give headers
+left_model_table.Properties.VariableNames(1:6) = {'step1_time','step1_response',...
+    'step2_time','step2_response',...
+    'step3_time','step3_response',};
+% save to csv
+fname = strcat(date, '_left_motor_model_response.csv');
+writetable(left_model_table,fname)
+fprintf('\nLeft model parameters in form J/(s+K): J=%f K=%f \n',L_J,L_K)
+
+
+
+% put 3 steps into array (model data)
+right_model_data = [R_t_1, R_s1, ...
+    R_t_2, R_s2, ...
+    R_t_3, R_s3];
+% convert to table
+right_model_table = array2table(right_model_data);
+% give headers
+right_model_table.Properties.VariableNames(1:6) = {'step1_time','step1_response',...
+    'step2_time','step2_response',...
+    'step3_time','step3_response',};
+% save to csv
+fname = strcat(date, '_right_motor_model_response.csv');
+writetable(right_model_table,fname)
+fprintf('Right model parameters in form J/(s+K): J=%f K=%f \n\n',R_J,R_K)
+
+fprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+fprintf('!   Don''t forget to open your csv files    !\n')
+fprintf('! and add the model parameters to the top. !\n') 
+fprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+
+
+
 
 
 
