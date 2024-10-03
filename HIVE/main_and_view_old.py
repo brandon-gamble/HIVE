@@ -40,8 +40,11 @@ omega_motor_max = 40    # [rad/s] max omega of motors
 
 # proportional controllers
 kp_speed = 0.0015 # 0.002 good in isolation
-#kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
-kp_heading = 6 # 10 good in isolation (with radian heading)
+#kp_speed = 0
+kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
+# NOTE: graph of theta(px) has slope near 0.002
+# probably need to mult or div kp_head by this to get siimilar performance
+# using theta heading instead of pixel heading
 #kp_speed = 0
 #kp_heading = 0
 
@@ -51,13 +54,15 @@ head_px =  0
 head_rad = 0
 markers = []
 
+# control timer
+# t_controller =
+
 follow_dist_mm = 500 # nose: 250 // center: 300,
 follow_dist_mm = 250
 
 # set camera specs
 wp = 640
 theta_fov_depth = math.radians(87)
-cam_loc = [15,0]
 
 ####################################################
 #               start serial comm                  #
@@ -98,14 +103,14 @@ pipeline.start(config)
 
 print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
-        # h = head_rad,
+        # h = head_px,
         # s = s_des,
         # o_d = omega_des,
         # o_l = omega_l_des,
         # o_r = omega_r_des,))
 
 head_rad = 0
-# head_px = 0
+head_px = 0
 s_des = 0
 omega_des = 0
 omega_l_des = 0
@@ -130,13 +135,12 @@ try:
         theta_fov_depth = math.radians(87)
 
         # detect markers in images
-        markers_list = vision.detect_aruco(image_pair,
-                                           visualize=False, camera_location=cam_loc)
+        markers_list = vision.detect_aruco(image_pair, visualize=False)
             # id = markers[0][0],   id,       [-]
             # x = markers[0][1][0], y,        [px]
             # y = markers[0][1][1], x,        [px]
             # d = markers[0][2],    distance, [mm]
-            # h = markers[0][3]))   heading,  [rad]
+            # h = markers[0][3]))   heading,  [px]
 
         if markers_list: # check to see if markers contains any elements (not empty)
             # convert markers from list to array
@@ -148,10 +152,19 @@ try:
             markers_min = np.min(markers, axis=0)
 
             # extract distance and heading detected in image
+            # flip sign of heading so that targ to right gives (-),
+            #   and targ to left give (+)
             # taking MINIMUM distance to avoid lurching when additional markers are detected
             # taking AVERAGE heading to help steer... may need to change this to min as well? needs testing
             dist_mm = markers_min[3]    # distance to aruco [mm]
-            head_rad = markers_avg[4] # heading to aruco  [rad]
+            head_px = -1*markers_avg[4] # heading to aruco  [px]
+
+            # need to do some tomfoolery to convert from pixel heading to radian heading:
+            # note that pixel heading has shifted the 0 of y axis to the center of the image
+            # need to add back the half width of image to return to 0 at edge of image instead of center
+            # px2rad also takes an array, so need to wrap heading value in array
+            # finally, px2rad spits out array, so need to unwrap to just a float by indexing first value [0]
+            head_rad = px2rad(np.array([head_px+wp/2]), wp, theta_fov_depth)[0]
 
             ####################################################
             #            outer loop controller                 #
@@ -161,7 +174,8 @@ try:
             s_des = dist_error_mm*kp_speed
 
             # apply proportional controller to desired omega
-            omega_des = head_rad*kp_heading
+            omega_des = head_px*kp_heading
+            # omega_des = head_rad*kp_heading
 
             # apply max cutoff to desired speed and omega
             s_des = min(s_des, s_max_mps)
@@ -232,11 +246,11 @@ try:
         if markers_list:
             for mark in markers:
                 for img in [color_image, depth_colormap]:
-                    cv2.circle(img, (int(mark[1]), int(mark[2])), 4, (0,0,255), -1)
-                    cv2.line(img, (int(mark[5]), int(mark[6])), (int(mark[7]), int(mark[8])), (0,255,0), 2)
-                    cv2.line(img, (int(mark[7]), int(mark[8])), (int(mark[9]), int(mark[10])), (0,255,0), 2)
-                    cv2.line(img, (int(mark[9]), int(mark[10])), (int(mark[11]), int(mark[12])), (0,255,0), 2)
-                    cv2.line(img, (int(mark[11]), int(mark[12])), (int(mark[5]), int(mark[6])), (0,255,0), 2)
+                    cv2.circle(img, (mark[1], mark[2]), 4, (0,0,255), -1)
+                    cv2.line(img, (mark[5], mark[6]), (mark[7], mark[8]), (0,255,0), 2)
+                    cv2.line(img, (mark[7], mark[8]), (mark[9], mark[10]), (0,255,0), 2)
+                    cv2.line(img, (mark[9], mark[10]), (mark[11], mark[12]), (0,255,0), 2)
+                    cv2.line(img, (mark[11], mark[12]), (mark[5], mark[6]), (0,255,0), 2)
 
         # Stack images horizontally
         images = np.hstack((color_unaligned,color_image, depth_colormap))
@@ -253,7 +267,8 @@ try:
         #######################################################################################
         print("{d:.2f}, {h:.4f},   {s:5.2f}, {o_d:5.2f},   {o_l:5.2f}, {o_r:5.2f}".format(
             d = dist_mm,
-            h = head_rad*180/3.1415,
+            h = head_rad,
+            # h = head_px,
             s = s_des,
             o_d = omega_des,
             o_l = omega_l_des,

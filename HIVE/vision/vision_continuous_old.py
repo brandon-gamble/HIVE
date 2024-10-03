@@ -73,36 +73,40 @@ def detect_aruco(image_pair, visualize=False, camera_location=[0,0], theta_fov=1
             #################################################
             # adjust coordinates (if camera isn't centered) #
             #################################################
-            # A T is vector from center of vehicle to camera (tank)
-            # B V is vector from camera to object            (view)
-            # C O is desired vector from center to object    (object)
+            # A is vector from center of vehicle to camera
+            # B is vector from camera to object
+            # C is desired vector from center to object
             rB = d
             thetaB = px2rad(cX, image_width, theta_fov)
-            Tx = camera_location[0]
-            Ty = camera_location[1]
+            Ax = camera_location[0]
+            Ay = camera_location[1]
 
-            Vx = rB*np.sin(thetaB)
+            Bx = rB*np.sin(thetaB)
             By = rB*np.cos(thetaB)
 
-            Ox = Tx + Vx
-            Oy = Ty + By
+            Cx = Ax + Bx
+            Cy = Ay + By
 
-            rC = np.sqrt(Ox**2 + Oy**2)
-            thetaC = np.arctan2(Ox,Oy)
+            rC = np.sqrt(Cx**2 + Cy**2)
+            thetaC = np.arctan2(Cx,Cy)
 
             d = int(rC) # cast to int because original depth value from image is int
-            heading = -thetaC # flip sign to make make CW/left (+) and CCW/right (-)
+            wp = 640
+            dp = wp/(2*np.tan(theta_fov/2))
+            heading_p = int(np.tan(thetaC)*dp+wp/2)
+            print(cX)
+            print(heading_p)
 
-            #print("center to camera: ({x:4.0f}, {y:4.0f})".format(x=Tx,y=Ty))
-            #print("camera to obj:    ({x:4.0f}, {y:4.0f})".format(x=Vx,y=Vy))
-            #print("center to obj:    ({x:4.0f}, {y:4.0f})".format(x=Ox,y=Oy))
+            #print("center to camera: ({x:4.0f}, {y:4.0f})".format(x=Ax,y=Ay))
+            #print("camera to obj:    ({x:4.0f}, {y:4.0f})".format(x=Bx,y=By))
+            #print("center to obj:    ({x:4.0f}, {y:4.0f})".format(x=Cx,y=Cy))
 
             # markers.append([markerID,cX,cY,d,heading_p])
-            markers.append([markerID,cX,cY,d,heading,topLeft[0],topLeft[1],topRight[0],topRight[1],botRight[0],botRight[1],botLeft[0],botLeft[1]])
+            markers.append([markerID,cX,cY,d,heading_p,topLeft[0],topLeft[1],topRight[0],topRight[1],botRight[0],botRight[1],botLeft[0],botLeft[1]])
             # [0] markerID,
-            # [1,2]   cX,cY,   [px]
-            # [3]     d,       [mm]
-            # [4]     heading, [rad]
+            # [1,2]   cX,cY,
+            # [3]     d,
+            # [4]     heading_p,
             # [5,6]   topLeft[0],topLeft[1],
             # [7,8]   topRight[0],topRight[1],
             # [9,10]  botRight[0],botRight[1],
@@ -346,8 +350,8 @@ def main():
     # Start streaming
     pipeline.start(config)
 
-    print("ID | Loc [px] | Dist [mm] | Head [rad] | Head [deg]")
-    print("---------------------------------------------------------")
+    print("ID | Loc [px] | Dist [mm] | Heading [px]")
+    print("----------------------------------------")
 
 
     while True:
@@ -379,17 +383,15 @@ def main():
 
         elif test_case == 3:
             image_pair = get_aligned_frame(pipeline)
-            markers = detect_aruco(image_pair, visualize=False,
-                                   camera_location=[0,-100])
+            markers = detect_aruco(image_pair, visualize=True, camera_location=[-50,-100])
 
             for marker in markers:
-                print("{id:<3} ({x:3},{y:3}) {d:10.2f} {hr:10.5f} {hd:10.2f}".format(
+                print("{id:<3} ({x:3},{y:3}) {d:10.2f} {h:10.1f}".format(
                     id = marker[0],
                     x = marker[1],
                     y = marker[2],
                     d = marker[3],
-                    hr = marker[4],
-                    hd = marker[4]*180/3.14))
+                    h = marker[4]))
             input()
 
     # Stop streaming
