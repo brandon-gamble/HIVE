@@ -217,7 +217,7 @@ def marker_pxl_size_angle(image_pair, marker):
 
 def main():
     marker_size = 30 # mm
-    # marker_size = 38.5 # mm
+    marker_size = 50 # mm
     N = 5 # bit size of marker (NOT INCLUDING ANY PADDING)
 
     pipeline = rs.pipeline()
