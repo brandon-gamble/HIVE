@@ -52,7 +52,7 @@ head_rad = 0
 markers = []
 
 follow_dist_mm = 500 # nose: 250 // center: 300,
-follow_dist_mm = 250
+follow_dist_mm = 300
 
 # set camera specs
 wp = 640

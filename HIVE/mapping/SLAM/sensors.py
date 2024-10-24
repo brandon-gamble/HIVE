@@ -29,6 +29,17 @@ class LaserSensor:
         return math.sqrt(px+py)
 
     def sense_obstacles(self):
+        '''
+        data output is LIST with form:
+        [[dist, angle, (x,y)], [dist, angle, (x,y)],....]
+                  datum 1               datum 2      ...
+
+        where:
+        dist  is distance to object
+        angle is angle to object
+        (x,y) is sensor location 
+
+        '''
         data = []
         x1, y1 = self.position[0], self.position[1]
 
