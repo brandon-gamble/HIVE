@@ -20,7 +20,6 @@ def random_color():
     levels = range(32, 256, 32)
     return tuple(random.choice(levels) for _ in range(3))
 
-
 def main():
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -38,19 +37,13 @@ def main():
     environment.infomap = environment.map.copy()
     originalMap = environment.map.copy()
 
-    running = True
-    FEATURE_DECTECTION = True
-    BREAK_POINT_IND = 0
-
     image_pair = mapping.get_aligned_frame(pipeline)
     depth_image = image_pair[1]
     color_image = image_pair[0]
 
-    mapping.plot_image_2d(depth_image)
-    # plt.imshow(depth_image)
-    # plt.show()
-    plt.imshow(color_image)
-    plt.show()
+    running = True
+    FEATURE_DECTECTION = True
+    BREAK_POINT_IND = 0
 
     while running:
         environment.infomap=originalMap.copy()
@@ -113,19 +106,19 @@ def main():
                         ENDPOINTS[0] = FeatureMAP.projection_point2line(OUTERMOST[0], m, c)
                         ENDPOINTS[1] = FeatureMAP.projection_point2line(OUTERMOST[1], m, c)
 
-                        COLOR = random_color()
-                        # print('done growing')
-
-                        for point in line_seg:
-                            environment.infomap.set_at((int(point[0][0]), int(point[0][1])), (0, 255, 0))
-                            pygame.draw.circle(environment.infomap, COLOR, (int(point[0][0]), int(point[0][1])), 2, 0)
-                        pygame.draw.line(environment.infomap, (255, 0, 0), ENDPOINTS[0], ENDPOINTS[1], 2)
-
+                        FeatureMAP.FEATURES.append([[m,c], ENDPOINTS])
+                        pygame.draw.line(environment.infomap, (0,255,0), ENDPOINTS[0], ENDPOINTS[1], 1)
                         environment.data_storage(sensor_data)
+
+                        FeatureMAP.FEATURES=FeatureMAP.lineFeats2point()
+                        features.landmark_association(FeatureMAP.FEATURES) # might need to make first "Features" -> "FEATURES"
+
+            for landmark in features.Landmarks:
+                pygame.draw.line(environment.infomap, (0,0,255), landmark[1][0], landmark[1][1], 2) # may need to make "landmark" -> "landmarks"
 
         environment.map.blit(environment.infomap, (0,0))
         pygame.display.update()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -11,7 +11,7 @@ class featureDetection:
         self.DELTA = 501
         self.SNUM = 6
         self.PMIN = 5 # 20 # min number of points in seg
-        self.GMAX = 20 # largest allowable gap between segments (i.e. door/window size)
+        self.GMAX = 40 # 20 # largest allowable gap between segments (i.e. door/window size)
         self.SEED_SEGMENTS = []
         self.LINE_SEGMENTS = []
         self.LASERPOINTS = []
@@ -20,6 +20,7 @@ class featureDetection:
         self.LMIN = 10 # 20 # min length of line segment
         self.LR = 0 # actual length of line segment
         self.PR = 0 # number of laser points in line segment
+        self.FEATURES =[]
 
     ########################################
     #       helper methods #
@@ -188,13 +189,13 @@ class featureDetection:
         return False
 
     def seed_segment_growing(self, indices, break_point):
-        print("FEATURES.PY .. trying to grow")
+        # print("FEATURES.PY .. trying to grow")
         line_eq = self.LINE_PARAMS
         i, j = indices
 
         PB, PF = max(break_point, i-1), min(j+1, len(self.LASERPOINTS)-1)
 
-        print("FEATURES.PY .. growing first dir")
+        # print("FEATURES.PY .. growing first dir")
         while self.dist_point2line(line_eq, self.LASERPOINTS[PF][0]) < self.EPSILON:
             if PF > self.NP - 1:
                 break
@@ -212,7 +213,7 @@ class featureDetection:
 
             PF = PF - 1
 
-            print("FEATURES.PY .. growing second dir")
+            # print("FEATURES.PY .. growing second dir")
             while self.dist_point2line(line_eq, self.LASERPOINTS[PB][0]):
                 if PB < break_point:
                     break
@@ -231,11 +232,11 @@ class featureDetection:
 
             LR = self.dist_point2point(self.LASERPOINTS[PB][0], self.LASERPOINTS[PF][0])
             PR = len(self.LASERPOINTS[PB:PF])
-            print("FEATURES.PY .. length of segment grown (LR): ", LR)
-            print("FEATURES.PY .. number of points in segment (PR): ", PR)
+            # print("FEATURES.PY .. length of segment grown (LR): ", LR)
+            # print("FEATURES.PY .. number of points in segment (PR): ", PR)
 
             if (LR >= self.LMIN) and (PR >= self.PMIN):
-                print("FEATURES.PY .. segment meets LMIN and PMIN. successfully created!")
+                # print("FEATURES.PY .. segment meets LMIN and PMIN. successfully created!")
                 self.LINE_PARAMS = line_eq
                 m, b = self.lineForm_G2SI(line_eq[0], line_eq[1], line_eq[2])
                 self.two_points = self.line_2points(m, b)
@@ -243,7 +244,7 @@ class featureDetection:
                 return [self.LASERPOINTS[PB:PF], self.two_points,
                 (self.LASERPOINTS[PB + 1][0], self.LASERPOINTS[PF-1][0]), PF, line_eq, (m, b)]
             else:
-                print("FEATURES.PY .. failed to grow segment")
+                # print("FEATURES.PY .. failed to grow segment")
                 return False
                 # return []
 
@@ -259,13 +260,25 @@ class featureDetection:
 
         return new_rep
 
+def X_dist_point2point(point1, point2): #4:30
+    Px = (point1[0] - point2[0])**2
+    Py = (point1[1] - point2[1])**2
+    return math.sqrt(Px + Py)
+
 def landmark_association(landmarks):
-    thresh = 10
+    thresh = 10 # 10 pixel distance between landmarks
     for l in landmarks:
 
         flag = False
-        for l, Landmark in enumerate(Landmarks):
-            dist = featureDetection.dist_point2line(l[2], Landmark[2])
+        for i, Landmark in enumerate(Landmarks):
+            # print("------------------------------------------------------------")
+            # print("parent landmarks", type(Landmarks), " -> ", Landmarks)
+            # print("enumerate l ", type(l), " -> ", l)
+            # print("enumerate Landmark ", type(Landmark), " -> ", Landmark)
+            # print(l[2])
+            # print(Landmark[2])
+            # dist = featureDetection.dist_point2point(l[2], Landmark[2])
+            dist = X_dist_point2point(l[2], Landmark[2])
             if dist < thresh:
                 if not is_overlap(l[1], Landmark[1]):
                     continue
@@ -279,13 +292,16 @@ def landmark_association(landmarks):
             Landmarks.append(l)
 
 def is_overlap(seg1, seg2):
-    length1 = featureDetection.dist_point2point(seg1[0], seg1[1])
-    length2 = featureDetection.dist_point2point(seg2[0], seg2[1])
+    # length1 = featureDetection.dist_point2point(seg1[0], seg1[1])
+    # length2 = featureDetection.dist_point2point(seg2[0], seg2[1])
+    length1 = X_dist_point2point(seg1[0], seg1[1])
+    length2 = X_dist_point2point(seg2[0], seg2[1])
 
     center1 = ((seg1[0][0] + seg1[1][0])/2, (seg1[0][1] + seg1[1][1]) / 2)
     center2 = ((seg2[0][0] + seg2[1][0])/2, (seg2[0][1] + seg2[1][1]) / 2)
 
-    dist = featureDetection.dist_point2point(center1, center2)
+    # dist = featureDetection.dist_point2point(center1, center2)
+    dist = X_dist_point2point(center1, center2)
 
     if dist > (length1 + length2)/2:
         return False
