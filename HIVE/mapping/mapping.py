@@ -7,6 +7,7 @@ import cv2
 import argparse
 import imutils
 import sys
+from scipy.signal import find_peaks
 
 ######################################
 '''
@@ -105,15 +106,30 @@ def plot_image_3d(image):
 
     return
 
-def plot_image_2d(image):
+def plot_image_2d(image, axes="px"):
     # "image" is array, not frame
 
     # good cmap options: inferno, hsv
-    plt.imshow(image, cmap='inferno', vmin=0, vmax=1500)
-    plt.colorbar()
-    plt.title('Realsense FOV, Depth [mm]')
-    plt.xlabel('x [px]')
-    plt.ylabel('z [px]')
+    if axes == "px":
+        plt.imshow(image, cmap='inferno', vmin=0, vmax=1500)
+        plt.colorbar()
+        plt.title('Realsense FOV, Depth [mm]')
+        plt.xlabel('x [px]')
+        plt.ylabel('z [px]')
+    elif axes == "rad":
+        plt.imshow(image, cmap='inferno', vmin=0, vmax=1500,
+            extent=[-math.radians(87/2),math.radians(87/2),-math.radians(58/2),math.radians(58/2)])
+        plt.colorbar()
+        plt.title('Realsense FOV, Depth [mm]')
+        plt.xlabel('yaw [rad]')
+        plt.ylabel('pitch [rad]')
+    elif axes == "deg":
+        plt.imshow(image, cmap='inferno', vmin=0, vmax=1500,
+            extent=[-87/2,87/2,-58/2,58/2])
+        plt.colorbar()
+        plt.title('Realsense FOV, Depth [mm]')
+        plt.xlabel('yaw [deg]')
+        plt.ylabel('pitch [deg]')
     plt.show()
     return
 
@@ -154,10 +170,13 @@ def main():
     03  3 horizontal slices of depth
     04  3 vertical   slices of depth
     05  # vertical   slices of depth
-    06  # vertical   slices of depth AND "deriv" AND slope
-    07  # vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison
+    06  1 vertical   slices of depth AND "deriv" AND slope
+    07  1 vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison: kernels= [5,10,20,40,100]
+    08  1 vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison: kernels= [5,10,20]
+    09  1 vertical   slices of depth, difference, slope. -> peak finder
+    10
     '''
-    test_case = 8
+    test_case = 10
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -391,7 +410,7 @@ def main():
             plt.title('Realsense FOV vertical depth slice [mm]')
             plt.show()
 
-    elif (test_case == 6) or (test_case == 7):
+    elif (test_case == 6) or (test_case == 7) or (test_case == 8):
         while True:
             # get images
             image_pair = get_aligned_frame(pipeline)
@@ -423,7 +442,8 @@ def main():
 
             # set slice locations
             slice_locs = [290, 300, 310, 320, 330, 340]
-            slice_locs = [335]
+            slice_locs = [217, 390]
+            slice_locs = [217]
 
             for loc in slice_locs:
                 # get vertical slice (constant x)
@@ -452,7 +472,17 @@ def main():
                     for k_size in kernel_sizes:
                         kernel = np.ones(k_size) / k_size
                         slope_smooth = np.convolve(slope, kernel, mode='same')
-                        axs[2].plot(np.degrees(data[0,:]), slope_smooth, label='k='+k_size)
+                        axs[2].plot(np.degrees(data[0,:]), slope_smooth, label='k='+str(k_size))
+
+                if test_case == 8:
+                    ##############################
+                    # smoothing the slope signal #
+                    ##############################
+                    kernel_sizes = [5,10,20]
+                    for k_size in kernel_sizes:
+                        kernel = np.ones(k_size) / k_size
+                        slope_smooth = np.convolve(slope, kernel, mode='same')
+                        axs[2].plot(np.degrees(data[0,:]), slope_smooth, label='k='+str(k_size))
 
                 # plot slice
                 axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
@@ -482,7 +512,13 @@ def main():
 
             plt.show()
 
-    elif test_case == 8:
+    elif test_case == 9:
+        '''
+        - results show that the raw data gives better peaks.
+        - this is great because we can therefore use the raw data and avoid
+            the convolution used for smoothing.
+        - good peak parameters: height=100, distance=20, prominence=1000
+        '''
         while True:
             # get images
             image_pair = get_aligned_frame(pipeline)
@@ -497,10 +533,13 @@ def main():
 
             # plot color image
             plt.imshow(color_image)
+            plt.title('Realsense FOV, Depth [mm]')
+            plt.xlabel('x [px]')
+            plt.ylabel('z [px]')
             plt.show()
 
             # plot depth image
-            plot_image_2d(depth_image)
+            plot_image_2d(depth_image, axes="deg")
 
             # convert vertical pixels to headings
             y_array = np.arange(hp)
@@ -514,7 +553,8 @@ def main():
 
             # set slice locations
             slice_locs = [290, 300, 310, 320, 330, 340]
-            slice_locs = [335]
+            slice_locs = [217, 390]
+            slice_locs = [480]
 
             for loc in slice_locs:
                 # get vertical slice (constant x)
@@ -538,26 +578,32 @@ def main():
                 ##############################
                 # smoothing the slope signal #
                 ##############################
-                kernel_size = 20
+                kernel_size = 5
                 kernel = np.ones(kernel_size) / kernel_size
                 slope_smooth = np.convolve(slope, kernel, mode='same')
 
                 #plot slope
+                axs[1].plot(np.degrees(data[0,:]), slope, label=str(loc)+' [px], raw')
                 axs[2].plot(np.degrees(data[0,:]), slope_smooth, label=str(loc)+' [px], k='+str(kernel_size))
 
                 # plot slice
                 axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
 
-                # plot "derive"
-                axs[1].plot(np.degrees(data[0,1:]), nghbr_pxl_diff, label=str(loc)+' [px]')
+                ##############
+                # find peaks #
+                ##############
+                peaks, _ = find_peaks(slope, height=100, distance=20, prominence=1000)
+                axs[1].plot(np.degrees(data[0,peaks]), slope[peaks], "x")
 
+                peaks_smooth, _ = find_peaks(slope_smooth, height=100, distance=20, prominence=1000)
+                axs[2].plot(np.degrees(data[0,peaks_smooth]), slope_smooth[peaks_smooth], "x")
 
             axs[0].set_xlabel('pitch [deg]')
             axs[1].set_xlabel('pitch [deg]')
             axs[2].set_xlabel('pitch [deg]')
 
             axs[0].set_ylabel('depth [mm]')
-            axs[1].set_ylabel('difference between neighbors [mm]')
+            axs[1].set_ylabel('slope [mm/rad]')
             axs[2].set_ylabel('slope [mm/rad]')
 
             # axs[0].title.set_text('Slice depth')
@@ -566,12 +612,116 @@ def main():
             axs[0].title.set_text('Obstacle Analysis: Vertical Depth Slices')
 
             axs[0].legend()
-
+            axs[1].legend()
             axs[2].legend()
 
-
-
             plt.show()
+
+    elif test_case == 10:
+        while True:
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # set camera specs
+            wp = 640
+            hp = 480
+            theta_fov_depth_horiz = math.radians(87)
+            theta_fov_depth_vert = math.radians(58)
+
+            # plot color image
+            plt.imshow(color_image)
+            plt.title('Realsense FOV, Depth [mm]')
+            plt.xlabel('x [px]')
+            plt.ylabel('z [px]')
+            plt.show()
+
+            # plot depth image
+            plot_image_2d(depth_image, axes="deg")
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # titt up
+            y_array = np.flip(y_array)
+
+            # fig, axs = plt.subplots(2,1)
+
+            # set slice locations
+            slice_locs = [225,250,275,300,325,350, 430,440,450,460,470,480,490,500]
+            # slice_locs = [480]
+
+            # plot color image
+            plt.imshow(depth_image, cmap='inferno', vmin=0, vmax=1500,
+                # extent=[-87/2,87/2,-58/2,58/2])
+                extent=[-math.radians(87/2),math.radians(87/2),-math.radians(58/2),math.radians(58/2)])
+            plt.colorbar()
+            plt.title('Realsense FOV, Depth [mm]. Obstacle Detection')
+            plt.xlabel('yaw [rad]')
+            plt.ylabel('pitch [rad]')
+            for loc in slice_locs:
+                # get vertical slice (constant x)
+                slice = depth_image[:,loc]
+
+                # put into pairs [rad,depth]
+                data = np.array([y_array, slice])
+
+                # remove zeros
+                mask = data[1,:] != 0
+                data = data[:,mask]
+
+                # find slope (proper derivative)
+                slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
+
+                #plot slope
+                # axs[1].plot(np.degrees(data[0,:]), slope, label=str(loc)+' [px], raw')
+
+                # plot slice
+                # axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
+
+                ##############
+                # find peaks #
+                ##############
+                peaks, _ = find_peaks(slope, height=100, distance=20, prominence=1000)
+                # peaks is index into slope
+                # slope is 1D array deriv of data
+                # data is [rad, depth] pairs
+                if len(peaks) > 2:
+                    # we only want two peaks: the bottom and top edges of Obstacle
+                    # therefore if there are extraneous peaks, we slice just the "first" two,
+                    # first with respect to scanning from bottom to top
+                    # since pixel coords go from top to bottom, we take
+                    # the last two peaks instead of the first two
+                    peaks = peaks[-2:]
+
+                for peak in peaks:
+                        # ignore peaks that are taller than threshold
+                        if data[0,peak] < math.radians(6):
+                            # convert slice location to radian, this is the x-coord in plot we are looking at
+                            # data[0,peak] is the radian value along the vertical slice that peak occurs at
+                            plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "x")
+                # axs[1].plot(np.degrees(data[0,peaks]), slope[peaks], "x")
+
+                # plt.plot(data[0,peaks], slope[peaks], "x")
+            plt.show()
+
+            # axs[0].set_xlabel('pitch [deg]')
+            # axs[1].set_xlabel('pitch [deg]')
+            #
+            # axs[0].set_ylabel('depth [mm]')
+            # axs[1].set_ylabel('slope [mm/rad]')
+
+            # axs[0].title.set_text('Slice depth')
+            # axs[1].title.set_text('Pixel to Pixel change')
+            # axs[2].title.set_text('Slope')
+            # axs[0].title.set_text('Obstacle Analysis: Vertical Depth Slices')
+
+            # axs[0].legend()
+            # axs[1].legend()
+
 
     # Stop streaming
     pipeline.stop()
