@@ -8,6 +8,7 @@ import argparse
 import imutils
 import sys
 from scipy.signal import find_peaks
+from time import sleep
 
 ######################################
 '''
@@ -156,6 +157,26 @@ def px2rad(px, wp, theta_fov):
 
     return theta
 
+def analyze_obstacle(theta1, theta2, d1, d2):
+    # visual angle of obstacle
+    alpha = theta2 - theta1
+    # if theta2 < 0:
+    #     alpha = abs(theta1) - abs(theta2)
+    # else:
+    #     alpha = abs(theta1) + abs(theta2)
+    # length of face of obstacle
+    f = math.sqrt(d1**2 + d2**2 - 2*d1*d2*math.cos(alpha))
+    # lower internal angle of visual triangle
+    theta3 = math.asin(d2/f*math.sin(alpha))
+    # pitch of obstacle:
+        # 90 deg == 1.5708 rad
+        # =90  is vertical
+        # <90 is leaning toward
+        # >90 is leaning away
+    theta_obs = theta3-theta1
+
+    return f, theta_obs
+
 def main():
     '''
     test files
@@ -174,9 +195,13 @@ def main():
     07  1 vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison: kernels= [5,10,20,40,100]
     08  1 vertical   slices of depth AND "deriv" AND slope SMOOTHING comparison: kernels= [5,10,20]
     09  1 vertical   slices of depth, difference, slope. -> peak finder
-    10
+    10  many vert slices, find peaks (edges in environment) and overlay on depth image
+    11  takes peaks and package into pairs of edge vertices. estimate obstacle size. show on plot
     '''
-    test_case = 10
+    test_case = 11
+    print("**************************")
+    print("*      TEST CASE " + str(test_case) + "      *")
+    print("**************************")
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -618,27 +643,31 @@ def main():
             plt.show()
 
     elif test_case == 10:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        # set camera specs
+        wp = 640
+        hp = 480
+        theta_fov_depth_horiz = math.radians(87)
+        theta_fov_depth_vert = math.radians(58)
+
+        # plot color image
+        plt.imshow(color_image)
+        plt.title('Realsense FOV, Depth [mm]')
+        plt.xlabel('x [px]')
+        plt.ylabel('z [px]')
+        plt.show()
+
         while True:
             # get images
             image_pair = get_aligned_frame(pipeline)
             depth_image = image_pair[1]
             color_image = image_pair[0]
-
-            # set camera specs
-            wp = 640
-            hp = 480
-            theta_fov_depth_horiz = math.radians(87)
-            theta_fov_depth_vert = math.radians(58)
-
-            # plot color image
-            plt.imshow(color_image)
-            plt.title('Realsense FOV, Depth [mm]')
-            plt.xlabel('x [px]')
-            plt.ylabel('z [px]')
-            plt.show()
-
-            # plot depth image
-            plot_image_2d(depth_image, axes="deg")
 
             # convert vertical pixels to headings
             y_array = np.arange(hp)
@@ -650,9 +679,9 @@ def main():
 
             # fig, axs = plt.subplots(2,1)
 
-            # set slice locations
+            # set slice locations (pixels)
             slice_locs = [225,250,275,300,325,350, 430,440,450,460,470,480,490,500]
-            # slice_locs = [480]
+            slice_locs = list(range(0,wp,20))
 
             # plot color image
             plt.imshow(depth_image, cmap='inferno', vmin=0, vmax=1500,
@@ -673,55 +702,156 @@ def main():
                 mask = data[1,:] != 0
                 data = data[:,mask]
 
-                # find slope (proper derivative)
-                slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
+                # if data is not empty from masking zeros, continue
+                if data.shape[1] > 2:
+                    # find slope (proper derivative)
+                    slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
 
-                #plot slope
-                # axs[1].plot(np.degrees(data[0,:]), slope, label=str(loc)+' [px], raw')
+                    ##############
+                    # find peaks #
+                    ##############
+                    peaks, _ = find_peaks(slope, height=100, distance=20, prominence=1000)
+                    # peaks is index into slope
+                    # slope is 1D array deriv of data
+                    # data is [rad, depth] pairs
 
-                # plot slice
-                # axs[0].plot(np.degrees(data[0,:]), data[1,:], '.', label=str(loc)+' [px]')
+                    if len(peaks) >= 2:
+                        # we only want two peaks: the bottom and top edges of Obstacle
+                        # therefore if there are extraneous peaks, we slice just the "first" two,
+                        # first with respect to scanning from bottom to top
+                        # since pixel coords go from top to bottom, we take
+                        # the last two peaks instead of the first two
+                        peaks = peaks[-2:]
 
-                ##############
-                # find peaks #
-                ##############
-                peaks, _ = find_peaks(slope, height=100, distance=20, prominence=1000)
-                # peaks is index into slope
-                # slope is 1D array deriv of data
-                # data is [rad, depth] pairs
-                if len(peaks) > 2:
-                    # we only want two peaks: the bottom and top edges of Obstacle
-                    # therefore if there are extraneous peaks, we slice just the "first" two,
-                    # first with respect to scanning from bottom to top
-                    # since pixel coords go from top to bottom, we take
-                    # the last two peaks instead of the first two
-                    peaks = peaks[-2:]
-
-                for peak in peaks:
-                        # ignore peaks that are taller than threshold
-                        if data[0,peak] < math.radians(6):
-                            # convert slice location to radian, this is the x-coord in plot we are looking at
-                            # data[0,peak] is the radian value along the vertical slice that peak occurs at
-                            plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "x")
-                # axs[1].plot(np.degrees(data[0,peaks]), slope[peaks], "x")
-
-                # plt.plot(data[0,peaks], slope[peaks], "x")
+                        for peak in peaks:
+                            # ignore peaks that are taller than threshold
+                            if data[0,peak] < math.radians(6):
+                                # convert slice location to radian, this is the x-coord in plot we are looking at
+                                # data[0,peak] is the radian value along the vertical slice that peak occurs at
+                                plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "cx")
             plt.show()
 
-            # axs[0].set_xlabel('pitch [deg]')
-            # axs[1].set_xlabel('pitch [deg]')
-            #
-            # axs[0].set_ylabel('depth [mm]')
-            # axs[1].set_ylabel('slope [mm/rad]')
+    elif test_case == 11:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
 
-            # axs[0].title.set_text('Slice depth')
-            # axs[1].title.set_text('Pixel to Pixel change')
-            # axs[2].title.set_text('Slope')
-            # axs[0].title.set_text('Obstacle Analysis: Vertical Depth Slices')
+        # set camera specs
+        wp = 640
+        hp = 480
+        theta_fov_depth_horiz = math.radians(87)
+        theta_fov_depth_vert = math.radians(58)
 
-            # axs[0].legend()
-            # axs[1].legend()
+        # plot color image
+        plt.imshow(color_image)
+        plt.title('Realsense FOV, Depth [mm]')
+        plt.xlabel('x [px]')
+        plt.ylabel('z [px]')
+        plt.show()
 
+        while True:
+            print("----- NEW SCAN -----")
+            # get images
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+            color_image = image_pair[0]
+
+            # convert vertical pixels to headings
+            y_array = np.arange(hp)
+            y_array = px2rad(y_array, hp, theta_fov_depth_vert)
+            # flip orientation because y px index starts at 0 at top and increases
+            # as you move down. want angle to be 0 at level and increase as you
+            # tilt up
+            y_array = np.flip(y_array)
+
+            # set slice locations (pixels)
+            slice_locs = list(range(0,wp,20))
+            slice_locs = [300, 450]
+            # slice_locs = [450]
+
+            # plot depth image
+            plt.imshow(depth_image, cmap='inferno', vmin=0, vmax=1500,
+                extent=[-math.radians(87/2),math.radians(87/2),-math.radians(58/2),math.radians(58/2)])
+            plt.colorbar()
+            plt.title('Realsense FOV, Depth [mm]. Obstacle Detection')
+            plt.xlabel('yaw [rad]')
+            plt.ylabel('pitch [rad]')
+
+            for loc in slice_locs:
+                # print("slice loc: " + str(px2rad(loc, wp, theta_fov_depth_horiz)))
+                # get vertical slice (constant x)fr
+                slice = depth_image[:,loc]
+
+                # put into pairs [rad,depth]
+                data = np.array([y_array, slice])
+
+                # remove zeros
+                mask = data[1,:] != 0
+                data = data[:,mask]
+
+                # if data is not empty from masking zeros, continue
+                if data.shape[1] > 2:
+                    # find slope (proper derivative)
+                    slope = np.gradient(data[1,:], data[0,:]) # [mm/rad]
+
+                    ##############
+                    # find peaks #
+                    ##############
+                    peaks, _ = find_peaks(slope, height=100, distance=20, prominence=1000)
+                    # peaks is index into slope - index 0 is top of image
+                    # slope is 1D array deriv of data
+                    # data is [rad, depth] pairs
+
+                    if len(peaks) >= 2:
+                        # we only want two peaks: the bottom and top edges of Obstacle
+                        # therefore if there are extraneous peaks, we slice just the "first" two,
+                        # first with respect to scanning from bottom to top
+                        # since pixel coords go from top to bottom, we take
+                        # the last two peaks instead of the first two
+                        peaks = peaks[-2:]
+
+                        # peaks[0] is the top edge index
+                        # bump it down a bit to make sure it is on the obstacle face
+                        # and not on the background
+                        peaks[0] += 10
+                        # bump bottom edge up a bit to make sure it is on face
+                        # and not on foreground
+                        peaks[1] -= 10
+
+                        # mask data again
+                        pitch_pair = data[0,peaks]
+                        dist_pair = data[1,peaks]
+
+                        face, theta = analyze_obstacle(pitch_pair[1], pitch_pair[0], dist_pair[1], dist_pair[0])
+                        # print("{pa:.5f}, {pb:.5f} | {da:3.0f}, {db:3.0f} | {f:3.3f}".format(
+                        #     pa = pitch_pair[1],
+                        #     pb = pitch_pair[0],
+                        #     da = dist_pair[1],
+                        #     db = dist_pair[0],
+                        #     f = face))
+
+                        # print face length estimation on depth image 
+                        plt.text(px2rad(loc, wp, theta_fov_depth_horiz), pitch_pair[0], f"{face:3.1f}", color='cyan')
+
+                        # print("face length = " + str(f))
+                        # print("angle = " + str(math.degrees(theta)))
+
+                        for peak in peaks:
+                            # ignore peaks that are taller than threshold
+                            if data[0,peak] < math.radians(6):
+                                # convert slice location to radian, this is the x-coord in plot we are looking at
+                                # data[0,peak] is the radian value along the vertical slice that peak occurs at
+                                plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "cx")
+            plt.show()
+            # break
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
 
     # Stop streaming
     pipeline.stop()
