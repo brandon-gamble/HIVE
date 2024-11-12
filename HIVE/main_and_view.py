@@ -57,7 +57,7 @@ follow_dist_mm = 300
 # set camera specs
 wp = 640
 theta_fov_depth = math.radians(87)
-cam_loc = [15,0]
+cam_loc = [-25,105] # sideways,forward displacement of camera (right +,fwd +)
 
 ####################################################
 #               start serial comm                  #
@@ -74,6 +74,8 @@ print('tire radius [m]:   ' + str(tire_radius_m))
 print('')
 print('max speed [m/s]:   ' + str(s_max_mps))
 print('omega max [rad/s]: ' + str(omega_max))
+print('')
+print('camera offset (fwd,horiz) [mm]: (' + str(cam_loc[0]) + ', ' + str(cam_loc[1]) + ')')
 print('')
 print('follow dist [mm]:  ' + str(follow_dist_mm))
 print('')
@@ -99,8 +101,10 @@ pipeline.start(config)
 print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
         # h = head_rad,
+        
         # s = s_des,
         # o_d = omega_des,
+
         # o_l = omega_l_des,
         # o_r = omega_r_des,))
 

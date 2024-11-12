@@ -380,7 +380,7 @@ def main():
         elif test_case == 3:
             image_pair = get_aligned_frame(pipeline)
             markers = detect_aruco(image_pair, visualize=False,
-                                   camera_location=[0,-100])
+                                   camera_location=[0,0])
 
             for marker in markers:
                 print("{id:<3} ({x:3},{y:3}) {d:10.2f} {hr:10.5f} {hd:10.2f}".format(

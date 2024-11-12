@@ -33,7 +33,8 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 // pulses per rev of encoder
 #define ENC_0_REV_COUNT 360
 // gear ratio between encoder and output shaft
-#define ENC_0_GEAR_RATIO 0.88949
+//#define ENC_0_GEAR_RATIO 0.88949
+#define ENC_0_GEAR_RATIO 1
 // encoder outout A to arduino
 #define ENC_0_INA 2
 // encoder pulse count
@@ -48,10 +49,11 @@ float omega_enc_0 = 0;
 // pulses per rev of encoder
 #define ENC_1_REV_COUNT 360
 // gear ratio between encoder and output shaft
-#define ENC_1_GEAR_RATIO 1.1786
+//#define ENC_1_GEAR_RATIO 1.1786
+#define ENC_1_GEAR_RATIO 1
 // encoder outout A to arduino
 #define ENC_1_INA 3
-// #define ENC_1_INB 4
+// #define ENC_1_INB 4s
 // encoder pulse count
 volatile long encoder_1_count = 0;
 // motor speed [rad/s]
@@ -98,16 +100,11 @@ boolean new_data = false;
 //#define B_R 16.17
 
 // controller parameters
-#define KI_L 0.08
-#define KP_L 1.0
-#define KI_R 0.08
-#define KP_R 1.0
+#define KI_L 0.02
+#define KP_L 0.8
 
-// old parameters
-// #define KI_L 0.02
-// #define KP_L 0.8
-// #define KI_R 0.02
-// #define KP_R 0.8
+#define KI_R 0.02
+#define KP_R 0.8
 
 ///////////////////////////////////////
 // OLD MOTOR PARAMS AND CONTROL VALS //
@@ -150,7 +147,7 @@ float *omega_r_ptr;
 void setup() {
     Serial.begin(38400);
 //    Serial.begin(9600);
-    Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
+    Serial.println("PROGRAM: wheel_speed_control_test_dual_NOPRINT.ino");
     Serial.println("UPLOAD DATE: 2024 NOV 05");
     Serial.println("BAUD 38400");
 
@@ -227,7 +224,7 @@ void loop(){
 
         omega_enc_0 = abs(omega_enc_0);
         omega_enc_1 = abs(omega_enc_1);
-
+        
         // encoders only wired for positive signal;
         // need to get direction from inputs:
         if (u_l < 0) {
@@ -273,33 +270,33 @@ void loop(){
 
         tread_right.drive(u_r);
 
-        ////////////////
-        // print data //
-        ////////////////
-        // left side  data
-        Serial.print(omega_l_des);
-        Serial.print(", ");
+//        ////////////////
+//        // print data //
+//        ////////////////
+//        // left side  data
+//        Serial.print(omega_l_des);
+//        Serial.print(", ");
         Serial.print(*omega_l_ptr);
         Serial.print(", ");
-        Serial.print(error_l);
-        Serial.print(", ");
-        Serial.print(u_integral_l);
-        Serial.print(", ");
-        Serial.print(u_l);
-        Serial.print(", ");
-
-        // right side data
-        Serial.print(omega_r_des);
-        Serial.print(", ");
+//        Serial.print(error_l);
+//        Serial.print(", ");
+//        Serial.print(u_integral_l);
+//        Serial.print(", ");
+//        Serial.print(u_l);
+//        Serial.print(", ");
+//
+//        // right side data
+//        Serial.print(omega_r_des);
+//        Serial.print(", ");
         Serial.print(*omega_r_ptr);
         Serial.print(", ");
-        Serial.print(error_r);
-        Serial.print(", ");
-        Serial.print(u_integral_r);
-        Serial.print(", ");
-        Serial.print(u_r);
-        Serial.print(", ");
-
+//        Serial.print(error_r);
+//        Serial.print(", ");
+//        Serial.print(u_integral_r);
+//        Serial.print(", ");
+//        Serial.print(u_r);
+//        Serial.print(", ");
+//
         Serial.println("");
     } // end rpm/voltage/text-output loop
 } // end main loop

@@ -158,6 +158,23 @@ def px2rad(px, wp, theta_fov):
     return theta
 
 def analyze_obstacle(theta1, theta2, d1, d2):
+    '''
+    input:
+    theta1  angle to bottom edge of obstacle
+    theta2    ''     top     ''   ''  ''
+    d1      dist to  bottom  ''   ''  ''
+    d2       ''  ''  top     ''   ''  ''
+
+    i.e. #1 is bottom edge, #2 is top edge.
+    obstacle defined by distance and angle to edges scanning from bottom up
+
+    output:
+    f       length of face of obstacle (dist b/t points defined by [theta1,d1] and [theta2,d2])
+    theta_obs pitch of obstacle, where 90 deg is vertical, <90 leans toward, >90 leans away
+
+    **** angles measured in radians ****
+    '''
+
     # visual angle of obstacle
     alpha = theta2 - theta1
     # if theta2 < 0:
@@ -834,7 +851,7 @@ def main():
                         #     db = dist_pair[0],
                         #     f = face))
 
-                        # print face length estimation on depth image 
+                        # print face length estimation on depth image
                         plt.text(px2rad(loc, wp, theta_fov_depth_horiz), pitch_pair[0], f"{face:3.1f}", color='cyan')
 
                         # print("face length = " + str(f))

@@ -1,3 +1,6 @@
+// this program is intended for varying the P and I gains for motor speed tracking
+// and testing these gains for both a small step and a large step
+
 //////////////////////////////////
 //      MOTOR DRIVER SETUP      //
 //////////////////////////////////
@@ -51,7 +54,7 @@ float omega_enc_0 = 0;
 #define ENC_1_GEAR_RATIO 1.1786
 // encoder outout A to arduino
 #define ENC_1_INA 3
-// #define ENC_1_INB 4
+// #define ENC_1_INB 4s
 // encoder pulse count
 volatile long encoder_1_count = 0;
 // motor speed [rad/s]
@@ -69,7 +72,19 @@ int sensorInterval = 50;
 long prev_sensorTimer = 0;
 long curr_sensorTimer = 0;
 float actual_interval = 0;
+float elapsed_time_sec = 0;
 
+/////////////////////////////
+// command steps and timer //
+/////////////////////////////
+
+long curr_motorTimer = 0;
+long prev_motorTimer = 0;
+int motorInterval = 5000;
+
+int command_step = 0;
+int prev_command_val = 0;
+int curr_command_val = 0;
 
 //////////////////
 // serial setup //
@@ -98,16 +113,12 @@ boolean new_data = false;
 //#define B_R 16.17
 
 // controller parameters
-#define KI_L 0.08
+// std values are KI=0.02, KP=0.8
+#define KI_L 0.08  // CHANGE THESE VARIABLES ACROSS TESTS
 #define KP_L 1.0
+
 #define KI_R 0.08
 #define KP_R 1.0
-
-// old parameters
-// #define KI_L 0.02
-// #define KP_L 0.8
-// #define KI_R 0.02
-// #define KP_R 0.8
 
 ///////////////////////////////////////
 // OLD MOTOR PARAMS AND CONTROL VALS //
@@ -150,8 +161,8 @@ float *omega_r_ptr;
 void setup() {
     Serial.begin(38400);
 //    Serial.begin(9600);
-    Serial.println("PROGRAM: wheel_speed_control_test_dual.ino");
-    Serial.println("UPLOAD DATE: 2024 NOV 05");
+    Serial.println("PROGRAM: motor_speed_track_gain_test.ino");
+    Serial.println("UPLOAD DATE: 2024 NOV 11");
     Serial.println("BAUD 38400");
 
     Serial.print("Enc L ratio: ");
@@ -171,6 +182,7 @@ void setup() {
     Serial.println(sensorInterval);
 
     // Serial.println("int_from_msg, Desired Speed [rad/s], Control Action [8bit], Tread Speed [rad/s]");
+    Serial.print("Time elapsed [s], ");
     Serial.print("omega_l_des [rad/s], omega_l [rad/s], error_l [rad/s], u_integral_l , u_l [8bit], ");
     Serial.println("omega_r_des [rad/s], omega_r [rad/s], error_r [rad/s], u_integral_r , u_r [8bit]");
 
@@ -216,6 +228,9 @@ void loop(){
     if (curr_sensorTimer - prev_sensorTimer > sensorInterval) {
         actual_interval = curr_sensorTimer - prev_sensorTimer;
         prev_sensorTimer = curr_sensorTimer;
+
+        elapsed_time_sec = float(curr_sensorTimer)/1000.0;
+
 
         /////////////////////////////
         //     ROTARY ENCODER      //
@@ -276,6 +291,8 @@ void loop(){
         ////////////////
         // print data //
         ////////////////
+        Serial.print(elapsed_time_sec);
+        Serial.print(", ");
         // left side  data
         Serial.print(omega_l_des);
         Serial.print(", ");
@@ -302,6 +319,32 @@ void loop(){
 
         Serial.println("");
     } // end rpm/voltage/text-output loop
+
+    /////////////////////////////
+    //  command step sequence  //
+    /////////////////////////////
+
+    // do motor command steps
+    curr_motorTimer = millis();
+    if (curr_motorTimer - prev_motorTimer > motorInterval) {
+        prev_motorTimer = curr_motorTimer;
+
+        if (command_step == 0) {
+            curr_command_val = 5;
+        } else if (command_step == 1) {
+            curr_command_val = 0; // CHANGE THESE VARIABLES ACROSS TESTS
+        } else if (command_step == 2) {
+            curr_command_val = 25; // CHANGE THESE VARIABLES ACROSS TESTS
+        } else {
+            curr_command_val = 0;
+        }
+        command_step ++;
+
+        omega_l_des = curr_command_val;
+        omega_r_des = curr_command_val;
+
+    } // end motor timer if loop
+
 } // end main loop
 
 ///////////////////////////
