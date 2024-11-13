@@ -1287,41 +1287,47 @@ def main():
         depth_image = image_pair[1]
         color_image = image_pair[0]
 
-        # while True:
-        obstacle_data = find_obstacles(
-            depth_image,
-            # num_slices=20,
-            num_slices=100,
-            theta_fov_depth_hv=[math.radians(87),math.radians(58)],
-            search_band=[math.radians(-30),math.radians(30)],
-            visualize = False,
-        )
-        # obstacle data is form:
-        #     0          1             2                 3           4
-        # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
-        # pitch and dist pairs are [bottom_edge, top edge]
-        # yaw gives side-to-side location
+        plot_image_2d(depth_image)
 
-        filtered_obstacles = filter_obstacles(
-            obstacle_data,
-            thresh_face_angle=math.radians(135),
-            thresh_face_length=40,
-            thresh_distance=1000,
-            visualize=True
+        while True:
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 99
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
             )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [bottom_edge, top edge]
+            # yaw gives side-to-side location
 
-        print("filtered_obstacles:")
-        print(filtered_obstacles)
+            filtered_obstacles = filter_obstacles(
+                obstacle_data,
+                thresh_face_angle=math.radians(135),
+                thresh_face_length=40,
+                thresh_distance=1000,
+                visualize=True
+                )
 
-        plt.plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles')
-        plt.plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles')
-        plt.legend()
-        plt.xlabel("yaw [rad]")
-        plt.ylabel("face size")
+            print("filtered_obstacles:")
+            print(filtered_obstacles)
+
+            plt.plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles')
+            plt.plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles')
+            plt.legend()
+            plt.title("Potential Obstacle Edges, num_slices={}".format(num_slices))
+            plt.xlabel("yaw [rad]")
+            plt.ylabel("face size")
 
 
-        # ax.legend()
-        plt.show()
+            # ax.legend()
+            plt.show()
 
     # elif test_case ==
     # elif test_case ==
