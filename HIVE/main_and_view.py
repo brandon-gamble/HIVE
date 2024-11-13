@@ -34,9 +34,9 @@ wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
 # max speed
-s_max_mps = 1.0         # [m/s]   max speed of vehicle
-omega_max = 5           # [rad/s] max omega of vehicle
-omega_motor_max = 40    # [rad/s] max omega of motors
+s_max_mps = 0.66        # [m/s]   max speed of vehicle
+omega_max = 4           # [rad/s] max omega of vehicle
+omega_motor_max = 35    # [rad/s] max omega of motors
 
 # proportional controllers
 kp_speed = 0.0015 # 0.002 good in isolation
@@ -101,7 +101,7 @@ pipeline.start(config)
 print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
         # h = head_rad,
-        
+
         # s = s_des,
         # o_d = omega_des,
 

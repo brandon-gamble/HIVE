@@ -66,7 +66,7 @@ float omega_enc_1 = 0.0;
 
 // interval for measurements
 //int sensorInterval = 50;
-int sensorInterval = 50;
+int sensorInterval = 10;
 
 // time tracking
 long prev_sensorTimer = 0;
