@@ -19,6 +19,11 @@ void setup() {
   //Start the serial communication
   Serial.begin(38400); //Baud rate must be the same as is on xBee module
   pinMode(ledPin, OUTPUT);
+  Serial.println("-----------------------------");
+  Serial.println("SKETCH: xbee_receive");
+  Serial.println("UPLOAD DATE: 24 NOV 14");
+  Serial.println("led on pin 3 for verification");
+  Serial.println("-----------------------------");
 }
 
 void loop() {
@@ -60,6 +65,7 @@ void loop() {
    msg[index] = '\0';
    started = false;
    ended = false;
-   Serial.println("wrote value");
+   Serial.print("wrote value: ");
+   Serial.println(value);
  }
 }
