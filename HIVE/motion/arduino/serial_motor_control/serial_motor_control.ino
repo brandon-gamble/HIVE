@@ -13,6 +13,12 @@ int int_from_msg = 0;
 
 boolean new_data = false;
 
+// if value sent is below this threshold, 
+// then command writen to motors will be changed to 0
+// experimentally, any analog write <30 does not turn motors,
+// just makes them hum
+const int throttle_low_stall = 30;
+
 /////////////////////////////////////
 //       motor control vars        //
 /////////////////////////////////////
@@ -124,6 +130,14 @@ void show_parsed_msg() {
 
 void send_commands() {
     // process and send actuation commands
+
+    // if command is less than threshold, just send 0
+    // this is reduce the times where tank motors are humming 
+    // while sitting still 
+    if ((int_from_msg < throttle_low_stall) && (int_from_msg > -throttle_low_stall)) {
+      int_from_msg = 0;
+    }
+    
     switch (char_from_msg[0]) {
         case 'L':                                   // 'L' = left tread
             // left tread

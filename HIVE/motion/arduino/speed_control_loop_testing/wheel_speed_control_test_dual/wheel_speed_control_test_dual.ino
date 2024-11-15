@@ -22,6 +22,12 @@ const int polarity_B = 1;
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
 Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
+// if value sent is below this threshold, 
+// then command writen to motors will be changed to 0
+// experimentally, any analog write <30 does not turn motors,
+// just makes them hum while stalled
+const int throttle_low_stall = 30;
+
 //////////////////////////////////
 //     ROTARY ENCODER SETUP     //
 //////////////////////////////////
@@ -250,11 +256,18 @@ void loop(){
         u_integral_l = u_integral_l + error_l*actual_interval;
         u_l = KP_L*error_l + KI_L*u_integral_l;
 
+        // saturation mask - make sure write value is not 
+        // large than maximum possible write (255)
         if (u_l > 255) {
            u_l = 255;
         }
         if (u_l < -255) {
            u_l = -255;
+        }
+
+        // if command is in the stall range, just send 0
+        if ((u_l < throttle_low_stall) && (u_l > -throttle_low_stall)) {
+          u_l = 0;
         }
 
         tread_left.drive(u_l);
@@ -264,11 +277,18 @@ void loop(){
         u_integral_r = u_integral_r + error_r*actual_interval;
         u_r = KP_R*error_r + KI_R*u_integral_r;
 
+        // saturation mask - make sure write value is not 
+        // large than maximum possible write (255)
         if (u_r > 255) {
            u_r = 255;
         }
         if (u_r < -255) {
            u_r = -255;
+        }
+
+        // if command is in the stall range, just send 0
+        if ((u_r < throttle_low_stall) && (u_r > -throttle_low_stall)) {
+          u_r = 0;
         }
 
         tread_right.drive(u_r);
