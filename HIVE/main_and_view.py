@@ -39,11 +39,13 @@ omega_max = 4           # [rad/s] max omega of vehicle
 omega_motor_max = 35    # [rad/s] max omega of motors
 
 # proportional controllers
-kp_speed = 0.0015 # 0.002 good in isolation
+kp_speed = 0.001 # 0.002 good in isolation
+
 #kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 kp_heading = 6 # 10 good in isolation (with radian heading)
+
 #kp_speed = 0
-#kp_heading = 0
+kp_heading = 0
 
 # feedback initialize
 dist_mm =  0
@@ -64,10 +66,10 @@ cam_loc = [-25,105] # sideways,forward displacement of camera (right +,fwd +)
 ####################################################
 ser = messenger.initialize_com(38400);
 print('waiting for connection....')
-time.sleep(2)
-print('***************************')
+time.sleep(1)
+print('*************************************')
 print('Vehicle and Controller Specifications')
-print('***************************')
+print('*************************************')
 print('')
 print('wheel base [m]:    ' + str(wheel_base_m))
 print('tire radius [m]:   ' + str(tire_radius_m))
@@ -84,6 +86,10 @@ print('kp_speed:     ' + str(kp_speed))
 print('')
 print('***************************')
 
+print('Heading gain test. Long step (1000mm)')
+print('24 NOV 21')
+print('***************************')
+
 #############################################################################################
 
 
@@ -98,7 +104,7 @@ config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 # Start streaming
 pipeline.start(config)
 
-print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
+print("Time Elapsed [s], Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
         # h = head_rad,
 
@@ -123,7 +129,9 @@ command_r = 0
 dist_mm = follow_dist_mm
 
 try:
+    start = time.time()
     while True:
+
         # get images (depth and color) from camera
         image_pair = vision.get_aligned_frame(pipeline)
         depth_image = image_pair[1]
@@ -213,7 +221,7 @@ try:
             dist_mm = 0
             head_rad = 0
 
-
+        '''
         #######################################################################################
         # put together view window #
         #######################################################################################
@@ -251,12 +259,17 @@ try:
         k = cv2.waitKey(1) & 0xFF # escape key to stop
         if k == 27:
             break
+        '''
 
+        end = time.time()
+        elapsed = end-start
         #######################################################################################
         # print outputs #
         #######################################################################################
-        print("{d:.2f}, {h:.4f},   {s:5.2f}, {o_d:5.2f},   {o_l:5.2f}, {o_r:5.2f}".format(
-            d = dist_mm,
+        print("{t:.5f}, {d:.2f}, {h:.4f},   {s:5.2f}, {o_d:5.2f},   {o_l:5.2f}, {o_r:5.2f}".format(
+            t = elapsed,
+            #d = dist_mm,
+            d = dist_mm-follow_dist_mm,
             h = head_rad*180/3.1415,
             s = s_des,
             o_d = omega_des,

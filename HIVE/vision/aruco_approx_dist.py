@@ -387,6 +387,7 @@ def approx_dist_simp(image_pair, theta_fov, marker_size, marker):
     xp = abs(marker[1]-image_center_x)
 
     dist = marker_size*yp/marker_size_px_avg*((1+(xp/yp)**2)**0.5)
+    # dist = marker_size/marker_size_px_avg*((xp**2+yp**2)**0.5)
 
     return dist
 

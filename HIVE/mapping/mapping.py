@@ -285,8 +285,8 @@ def find_obstacles(
     ----------------------------------------------
     face_list           [face_length,...]           list of obstacle face lengths
     theta_list          [theta_obs,...]             list of obstacle angles
-    pitch_pair_list     [[theta_bot, theta_top],...]list of pairs of angles to bot and top edges of obstacles
-    dist_pair_list      [[dist_bot, dist_top],...]  list of pairs of distances to bot and top edges of obstacles
+    pitch_pair_list     [[theta_top, theta_bot],...]list of pairs of angles to bot and top edges of obstacles
+    dist_pair_list      [[dist_top, dist_bot],...]  list of pairs of distances to bot and top edges of obstacles
     yaw_list
     '''
     # image size
@@ -424,13 +424,25 @@ def find_obstacles(
 def filter_obstacles(
     obstacle_data,
     thresh_face_angle=math.radians(135),
-    thresh_face_length=40,
+    thresh_min_face_length=40,
+    thresh_max_face_length=200,
     thresh_distance=1000,
     visualize=False
     ):
 
-    thresh_face_angle
-    thresh_distance
+    '''
+    obstacle data is form:
+    0          1             2                 3           4
+    face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+
+    pitch and dist pairs are [top_edge, bottom_edge]
+
+    yaw gives side-to-side location
+
+    '''
+
+    # thresh_face_angle
+    # thresh_distance
 
     # put lists into arrays to be able to mask
     face_array = np.array(obstacle_data[0])         # face lengths
@@ -440,10 +452,22 @@ def filter_obstacles(
     yaw_array = np.array(obstacle_data[4])          # yaw location of obstacle
 
     #######################################
-    #         MASK 1 - FACE LENGTH        #
+    #       MASK 1a - FACE LENGTH MIN     #
     # keep only things bigger than thresh #
     #######################################
-    face_mask = face_array > thresh_face_length
+    face_mask = face_array > thresh_min_face_length
+
+    face_array = face_array[face_mask]
+    theta_array = theta_array[face_mask]
+    pitch_pair_array = pitch_pair_array[face_mask]
+    dist_pair_array = dist_pair_array[face_mask]
+    yaw_array = yaw_array[face_mask]
+
+    #######################################
+    #       MASK 1b - FACE LENGTH MAX     #
+    # keep only things bigger than thresh #
+    #######################################
+    face_mask = face_array < thresh_max_face_length
 
     face_array = face_array[face_mask]
     theta_array = theta_array[face_mask]
@@ -507,8 +531,13 @@ def main():
     12  same as 11 but also displays face angle [deg]
     13  fixing flaw in analyze_obstacle function (giving supplementary angle of theta3 and therefore incorrect theta_obs)
     14  wrap obstacle detect stuff from cases 10-12 into a function and test
+    15  look at graph of filtered face sizes and gradient of face sizes
+    16  look at obstacle data (unfiltered)
+    17  look at obstacle data (filtered)
+    18  (static) filtered obstacles -> max/min yaw (in order to go around)
+    19  (dynamic) get obstacle bounds (yaw i.e. left/right) and print which way you want to turn
     '''
-    test_case = 14
+    test_case = 18
     print("**************************")
     print("*      TEST CASE " + str(test_case) + "      *")
     print("**************************")
@@ -570,7 +599,6 @@ def main():
             plt.title('Realsense FOV depth slice [mm]')
             plt.legend()
             plt.show()
-
     elif test_case == 3:
         while True:
             # get images
@@ -629,7 +657,6 @@ def main():
             plt.legend()
             plt.title('Realsense FOV depth slice [mm]')
             plt.show()
-
     elif test_case == 4:
         while True:
             # get images
@@ -693,7 +720,6 @@ def main():
             plt.legend()
             plt.title('Realsense FOV vertical depth slice [mm]')
             plt.show()
-
     elif test_case == 5:
         while True:
             # get images
@@ -744,7 +770,6 @@ def main():
             plt.legend()
             plt.title('Realsense FOV vertical depth slice [mm]')
             plt.show()
-
     elif (test_case == 6) or (test_case == 7) or (test_case == 8):
         while True:
             # get images
@@ -846,7 +871,6 @@ def main():
             axs[2].legend()
 
             plt.show()
-
     elif test_case == 9:
         '''
         - results show that the raw data gives better peaks.
@@ -951,7 +975,6 @@ def main():
             axs[2].legend()
 
             plt.show()
-
     elif test_case == 10:
         # get images
         image_pair = get_aligned_frame(pipeline)
@@ -1040,7 +1063,6 @@ def main():
                                 # data[0,peak] is the radian value along the vertical slice that peak occurs at
                                 plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "cx")
             plt.show()
-
     elif (test_case == 11) or (test_case == 12):
         # get images
         image_pair = get_aligned_frame(pipeline)
@@ -1161,7 +1183,6 @@ def main():
                                 plt.plot(px2rad(loc, wp, theta_fov_depth_horiz), data[0,peak], "cx")
             plt.show()
             # break
-
     elif test_case == 13:
 
         '''
@@ -1276,8 +1297,6 @@ def main():
         # for point in test_points:
         #     f, theta_obs = tester(t1,d1,point[0],point[1])
         #     print("{f:.0f}, {t:.0f}".format(f=f, t=theta_obs))
-
-
     elif test_case == 14:
         # get images
         image_pair = get_aligned_frame(pipeline)
@@ -1310,7 +1329,7 @@ def main():
             filtered_obstacles = filter_obstacles(
                 obstacle_data,
                 thresh_face_angle=math.radians(135),
-                thresh_face_length=40,
+                thresh_min_face_length=40,
                 thresh_distance=1000,
                 visualize=True
                 )
@@ -1323,12 +1342,468 @@ def main():
             plt.legend()
             plt.title("Potential Obstacle Edges, num_slices={}".format(num_slices))
             plt.xlabel("yaw [rad]")
-            plt.ylabel("face size")
+            plt.ylabel("face size [mm]")
 
 
             # ax.legend()
             plt.show()
+    elif test_case == 15:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
 
+        plot_image_2d(depth_image)
+
+        while True:
+            print("----- NEW SCAN -----")
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 50
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
+            )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [top_edge, bottom_edge]
+            # yaw gives side-to-side location
+
+            filtered_obstacles = filter_obstacles(
+                obstacle_data,
+                thresh_face_angle=math.radians(135),
+                thresh_min_face_length=40,
+                thresh_max_face_length=100,
+                thresh_distance=1000,
+                visualize=True
+                )
+
+            # print("filtered_obstacles:")
+            # print(filtered_obstacles)
+
+            fix, axs = plt.subplots(2,1)
+
+            axs[0].plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles')
+            axs[0].plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles')
+            axs[0].legend()
+            # plt.title("Potential Obstacle Edges, num_slices={}".format(num_slices))
+            axs[0].set_xlabel("yaw [rad]")
+            axs[0].set_ylabel("face size [mm]")
+            axs[0].set_xlim(-.6, 0.6)
+
+            # now get gradient of face size
+            slope = np.gradient(filtered_obstacles[0],filtered_obstacles[4])
+
+            slope_thresh = 100
+            slope_mask = abs(slope) < slope_thresh
+            slope_filtered = slope[slope_mask]
+            yaw_filtered = filtered_obstacles[4][slope_mask]
+
+            axs[1].plot(filtered_obstacles[4],slope,'o')
+            axs[1].plot(yaw_filtered,slope_filtered,'o')
+
+
+            axs[1].set_xlim(-.6, 0.6)
+
+            plt.show()
+    elif test_case == 16:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        plot_image_2d(depth_image)
+
+        while True:
+            print("----- NEW SCAN -----")
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 90
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
+            )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [top_edge, bottom_edge]
+            # yaw gives side-to-side location
+
+            filtered_obstacles = filter_obstacles(
+                obstacle_data,
+                thresh_face_angle=math.radians(135),
+                thresh_min_face_length=40,
+                thresh_max_face_length=150,
+                thresh_distance=1000,
+                visualize=True
+                )
+
+            # print("filtered_obstacles:")
+            # print(filtered_obstacles)
+
+
+            fix, axs = plt.subplots(3,2)
+
+            ##########################
+            # face size of obstacles #
+            ##########################
+            axs[0,0].plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles')
+            axs[0,0].plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles')
+            axs[0,0].legend()
+            # plt.title("Potential Obstacle Edges, num_slices={}".format(num_slices))
+            axs[0,0].set_xlabel("yaw [rad]")
+            axs[0,0].set_ylabel("face size [mm]")
+            axs[0,0].set_xlim(-.6, 0.6)
+
+            ##########################
+            #  face angles #
+            ##########################
+            axs[0,1].plot(obstacle_data[4],[math.degrees(ang) for ang in obstacle_data[1]],'o',label='face angle')
+            axs[0,1].set_xlabel("yaw [rad]")
+            axs[0,1].set_ylabel("face angle [deg]")
+            axs[0,1].set_xlim(-.6, 0.6)
+            axs[0,1].legend()
+
+            ##########################
+            #  top and bottom edge distances #
+            ##########################
+            axs[1,0].plot(obstacle_data[4],[pair[0] for pair in obstacle_data[3]],'o',label='top edge dist')
+            axs[1,0].plot(obstacle_data[4],[pair[1] for pair in obstacle_data[3]],'o',label='bot edge dist')
+
+            axs[1,0].set_xlabel("yaw [rad]")
+            axs[1,0].set_ylabel("dist [mm]")
+            axs[1,0].set_xlim(-.6, 0.6)
+            axs[1,0].legend()
+
+            ##########################
+            # dif b/t top/bot edge distances #
+            ##########################
+            top_edge_dist = [pair[0] for pair in obstacle_data[3]]
+            bot_edge_dist = [pair[1] for pair in obstacle_data[3]]
+            top_minus_bottom_edge_dist = [pair[0]-pair[1] for pair in obstacle_data[3]]
+
+            axs[2,0].plot(obstacle_data[4], top_minus_bottom_edge_dist ,'o',label='top-bot edge dist')
+            axs[2,0].set_xlabel("yaw [rad]")
+            axs[2,0].set_ylabel("dist [mm]")
+            axs[2,0].set_xlim(-.6, 0.6)
+            axs[2,0].legend()
+
+            ##########################
+            #  top and bottom pitch angles #
+            ##########################
+            axs[1,1].plot(obstacle_data[4],[math.degrees(pair[0]) for pair in obstacle_data[2]],'o',label='top edge pitch')
+            axs[1,1].plot(obstacle_data[4],[math.degrees(pair[1]) for pair in obstacle_data[2]],'o',label='bot edge pitch')
+            axs[1,1].set_xlabel("yaw [rad]")
+            axs[1,1].set_ylabel("pitch [deg]")
+            axs[1,1].set_xlim(-.6, 0.6)
+            axs[1,1].legend()
+
+            ##########################
+            #  dif b/t top/bot pitch angles #
+            ##########################
+            top_pitch_angle = [math.degrees(pair[0]) for pair in obstacle_data[2]]
+            bot_pitch_angle = [math.degrees(pair[1]) for pair in obstacle_data[2]]
+            top_minus_bottom_edge_angle = [math.degrees(pair[0] - pair[1]) for pair in obstacle_data[2]]
+
+            axs[2,1].plot(obstacle_data[4], top_minus_bottom_edge_angle ,'o',label='top-bot edge pitch')
+            axs[2,1].set_xlabel("yaw [rad]")
+            axs[2,1].set_ylabel("pitch [deg]")
+            axs[2,1].set_xlim(-.6, 0.6)
+            axs[2,1].legend()
+
+            ##########################
+            #  #
+            ##########################
+
+
+            plt.show()
+    elif test_case == 17:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        plot_image_2d(depth_image)
+
+        while True:
+            print("----- NEW SCAN -----")
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 90
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
+            )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [top_edge, bottom_edge]
+            # yaw gives side-to-side location
+
+            filtered_obstacles = filter_obstacles(
+                obstacle_data,
+                thresh_face_angle=math.radians(135),
+                thresh_min_face_length=40,
+                thresh_max_face_length=150,
+                thresh_distance=500,
+                visualize=True
+                )
+
+            # print("filtered_obstacles:")
+            # print(filtered_obstacles)
+
+
+            fix, axs = plt.subplots(3,2)
+
+            ##########################
+            # face size of obstacles #
+            ##########################
+            axs[0,0].plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles')
+            axs[0,0].plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles')
+            axs[0,0].legend()
+            # plt.title("Potential Obstacle Edges, num_slices={}".format(num_slices))
+            axs[0,0].set_xlabel("yaw [rad]")
+            axs[0,0].set_ylabel("face size [mm]")
+            axs[0,0].set_xlim(-.6, 0.6)
+
+            ##########################
+            #  face angles #
+            ##########################
+            axs[0,1].plot(filtered_obstacles[4],np.degrees(filtered_obstacles[1]),'o',label='face angle')
+
+            axs[0,1].set_xlabel("yaw [rad]")
+            axs[0,1].set_ylabel("face angle [deg]")
+            axs[0,1].set_xlim(-.6, 0.6)
+            axs[0,1].legend()
+
+            ##########################
+            #  top and bottom edge distances #
+            ##########################
+            axs[1,0].plot(filtered_obstacles[4],filtered_obstacles[3][:,0],'o',label='top edge dist')
+            axs[1,0].plot(filtered_obstacles[4],filtered_obstacles[3][:,1],'o',label='bot edge dist')
+
+            axs[1,0].set_xlabel("yaw [rad]")
+            axs[1,0].set_ylabel("dist [mm]")
+            axs[1,0].set_xlim(-.6, 0.6)
+            axs[1,0].legend()
+
+            ##########################
+            # dif b/t top/bot edge distances #
+            ##########################
+            top_minus_bottom_edge_dist = filtered_obstacles[3][:,0]-filtered_obstacles[3][:,1]
+            axs[2,0].plot(filtered_obstacles[4], top_minus_bottom_edge_dist ,'o',label='top-bot edge dist')
+
+            axs[2,0].set_xlabel("yaw [rad]")
+            axs[2,0].set_ylabel("dif_dist [mm]")
+            axs[2,0].set_xlim(-.6, 0.6)
+            axs[2,0].legend()
+
+            ##########################
+            #  top and bottom pitch angles #
+            ##########################
+            axs[1,1].plot(filtered_obstacles[4],filtered_obstacles[2][:,0] ,'o',label='top edge pitch')
+            axs[1,1].plot(filtered_obstacles[4],filtered_obstacles[2][:,1] ,'o',label='bot edge pitch')
+
+            axs[1,1].set_xlabel("yaw [rad]")
+            axs[1,1].set_ylabel("pitch [deg]")
+            axs[1,1].set_xlim(-.6, 0.6)
+            axs[1,1].legend()
+
+            ##########################
+            #  dif b/t top/bot pitch angles #
+            ##########################
+            top_minus_bottom_edge_angle = np.degrees(filtered_obstacles[2][:,0]-filtered_obstacles[2][:,1])
+            axs[2,1].plot(filtered_obstacles[4], top_minus_bottom_edge_angle ,'o',label='top-bot edge pitch')
+
+            axs[2,1].set_xlabel("yaw [rad]")
+            axs[2,1].set_ylabel("dif_pitch [deg]")
+            axs[2,1].set_xlim(-.6, 0.6)
+            axs[2,1].legend()
+
+            ##########################
+            #  #
+            ##########################
+
+
+            plt.show()
+    elif test_case == 18:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        plot_image_2d(depth_image)
+
+        while True:
+            print("----- NEW SCAN -----")
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 90
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
+            )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [top_edge, bottom_edge]
+            # yaw gives side-to-side location
+
+            filtered_obstacles = filter_obstacles(
+                obstacle_data,
+                thresh_face_angle=math.radians(135),
+                thresh_min_face_length=40,
+                thresh_max_face_length=150,
+                thresh_distance=500,
+                visualize=True
+                )
+
+
+            ##########################
+            # face size of obstacles #
+            ##########################
+            plt.plot(obstacle_data[4],obstacle_data[0],'o',label='raw obstacles',markersize=3)
+            plt.plot(filtered_obstacles[4],filtered_obstacles[0],'o',label='filtered obstacles',markersize=5)
+
+            try:
+                obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
+                plt.plot(filtered_obstacles[4][0],filtered_obstacles[0][0],'r>',label='left bound',markersize=15,mec='k')
+                plt.plot(filtered_obstacles[4][-1],filtered_obstacles[0][-1],'r<',label='right bound',markersize=15,mec='k')
+
+            except:
+                print("no bounds found")
+
+            plt.plot()
+
+
+            plt.legend(loc='upper right')
+            plt.title("Obstacle Detection, num_slices={}".format(num_slices))
+            plt.xlabel("yaw [rad]")
+            plt.ylabel("face size [mm]")
+            plt.xlim(-.6, 0.6)
+
+            plt.show()
+    elif test_case == 19:
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        plot_image_2d(depth_image)
+
+        while True:
+            # print("----- NEW SCAN -----")
+            image_pair = get_aligned_frame(pipeline)
+            depth_image = image_pair[1]
+
+            num_slices = 90
+            obstacle_data = find_obstacles(
+                depth_image,
+                num_slices=num_slices,
+                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                search_band=[math.radians(-30),math.radians(30)],
+                visualize = False,
+            )
+            # obstacle data is form:
+            #     0          1             2                 3           4
+            # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+            # pitch and dist pairs are [top_edge, bottom_edge]
+            # yaw gives side-to-side location
+
+
+            try:
+                filtered_obstacles = filter_obstacles(
+                    obstacle_data,
+                    thresh_face_angle=math.radians(135),
+                    thresh_min_face_length=40,
+                    thresh_max_face_length=150,
+                    thresh_distance=500,
+                    visualize=True
+                    )
+
+                obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
+                obstacle_center = np.average(obstacle_yaw_bounds)
+
+                if obstacle_center > 0:
+                    turn_dir = "LEFT      "
+                elif obstacle_center < 0:
+                    turn_dir = "     RIGHT"
+                else:
+                    turn_dir = "x"
+
+                print("Obstacle center: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
+            except:
+                print("empty array somewhere...")
+
+
+            # if not obstacle_data:
+            #     print("No edges detected.")
+            # else:
+            #     print("filtering potential obstacles")
+            #     filtered_obstacles = filter_obstacles(
+            #         obstacle_data,
+            #         thresh_face_angle=math.radians(135),
+            #         thresh_min_face_length=40,
+            #         thresh_max_face_length=150,
+            #         thresh_distance=500,
+            #         visualize=True
+            #         )
+            #     print("filtered")
+            #
+            #     if not filtered_obstacles:
+            #         print("No obstacles detected after filtering.")
+            #     else:
+            #         print("filtered obs detected")
+            #         obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
+            #         obstacle_center = np.average(obstacle_yaw_bounds)
+            #
+            #         if obstacle_center > 0:
+            #             turn_dir = "LEFT      "
+            #         elif obstacle_center < 0:
+            #             turn_dir = "     RIGHT"
+            #         else:
+            #             turn_dir = "x"
+            #
+            #         print("Obstacle center: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
+
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
+    # elif test_case ==
     # elif test_case ==
     # elif test_case ==
     # elif test_case ==
