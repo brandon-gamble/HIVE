@@ -1,0 +1,7 @@
+LED on arduino pin 2
+XBEE RX on arduino TX
+XBEE PWR/GND on arduino
+
+serial reads in form of "<x>" will analogWrite(x) to LED pin
+
+serial read can be from monitor or from XBEE

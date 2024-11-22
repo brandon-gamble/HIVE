@@ -75,7 +75,7 @@ legend('left','right','Location','NorthWest');
 tf_L = tf(1.795e07, [1, 2.943e07])
 tf_R = tf(21.25, [1, 33.45])
 
-% step responses (step=1)
+% step responses S(step=1)
 figure
 subplot(1,2,1)
 hold on
@@ -414,7 +414,7 @@ opt = stepDataOptions('StepAmplitude',50);
 step(tf_R_cmd,opt)
 title('step R, amp=50 (cmd/omega)')
 
-%% model comparison (cmd/omega) (1p/0z)
+%% model comparison (cmd/omega) (1p/0z) [take this]**********************************
 figure
 % LEFT MOTOR 
 subplot(1,2,1)

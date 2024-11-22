@@ -4,20 +4,20 @@
 # include <BJG_TB6612FNG.h>
 
 // H-Bridge pins
-#define AIN1 8
-#define AIN2 7
-#define PWMA 6
+#define AIN1 7
+#define AIN2 6
+#define PWMA 5
 
-#define BIN1 10
-#define BIN2 11
-#define PWMB 12
+#define BIN1 9
+#define BIN2 10
+#define PWMB 11
 
-#define STBY 9
+#define STBY 8
 
 
 // used to flip motor configuration without rewiring
 // if motor is spinning opposite direction of intention, flip sign
-const int polarity_A = -1;
+const int polarity_A = 1;
 const int polarity_B = 1;
 
 Motor tread_left = Motor(AIN1, AIN2, PWMA, polarity_A, STBY);
@@ -25,7 +25,7 @@ Motor tread_right = Motor(BIN1, BIN2, PWMB, polarity_B, STBY);
 
 long curr_motorTimer = 0;
 long prev_motorTimer = 0;
-int motorInterval = 3000;
+int motorInterval = 4000;
 
 int command_step = 0;
 int prev_command_val = 0;
@@ -35,15 +35,17 @@ int curr_command_val = 0;
 //     ROTARY ENCODER SETUP     //
 //////////////////////////////////
 
-///////////////
-// ENCODER 0 //
-///////////////
+//////////////////////
+// ENCODER 0 - LEFT //
+//////////////////////
 
 // pulses per rev of encoder
 #define ENC_0_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-const float ENC_0_GEAR_RATIO = 1.1428;
+const float ENC_0_GEAR_RATIO = 0.88949;
+//const float ENC_0_GEAR_RATIO = 0.86253;
+//const float ENC_0_GEAR_RATIO = 1;
 
 // encoder outout A to arduino
 #define ENC_0_INA 2
@@ -54,15 +56,17 @@ volatile long encoder_0_count = 0;
 // motor speed [rad/s]
 float omega_enc_0 = 0;
 
-///////////////
-// ENCODER 1 //
-///////////////
+///////////////////////
+// ENCODER 1 - RIGHT //
+///////////////////////
 
 // pulses per rev of encoder
 #define ENC_1_REV_COUNT 360
 
 // gear ratio between encoder and output shaft
-const float ENC_1_GEAR_RATIO = 0.86253;
+const float ENC_1_GEAR_RATIO = 1.1786;
+//const float ENC_1_GEAR_RATIO = 1.1428;
+//const float ENC_1_GEAR_RATIO = 1;
 
 // encoder outout A to arduino
 #define ENC_1_INA 3
@@ -78,7 +82,7 @@ float omega_enc_1 = 0;
 ////////////
 
 // interval for measurements
-float sensorInterval = 100;
+float sensorInterval = 50;
 
 // time tracking
 long prev_sensorTimer = 0;
@@ -89,13 +93,13 @@ float elapsed_time_sec = 0;
 
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(38400);
     Serial.println("PROGRAM: system_id_dual_motor.ino");
-    Serial.println("UPLOAD DATE: 2023 DEC 6");
+    Serial.println("UPLOAD DATE: 2024 MAR 19");
 
     Serial.print("Sample time [ms]: ");
     Serial.println(sensorInterval);
-    Serial.println("Time elapsed [s], Command Value, omega_enc_0 [rad/s], omega_enc_1 [rad/s]");
+    Serial.println("Time elapsed [s], Command Value, omega_enc_0_L [rad/s], omega_enc_1_R [rad/s]");
 
     //////////////////////////////////
     //      MOTOR DRIVER SETUP      //
@@ -134,8 +138,8 @@ void loop(){
         /////////////////////////////
 
         // calc motor speed [rad/s]
-        omega_enc_0 = encoder_0_count/actual_interval*1000/ENC_0_REV_COUNT*2*3.14159*ENC_0_GEAR_RATIO;
-        omega_enc_1 = encoder_1_count/actual_interval*1000/ENC_1_REV_COUNT*2*3.14159*ENC_1_GEAR_RATIO;
+        omega_enc_0 = (float)(encoder_0_count/actual_interval*1000*2*3.14159 / ENC_0_REV_COUNT * ENC_0_GEAR_RATIO);
+        omega_enc_1 = (float)(encoder_1_count/actual_interval*1000*2*3.14159 / ENC_1_REV_COUNT * ENC_1_GEAR_RATIO);
 
         // reset encoder count
         encoder_0_count = 0;

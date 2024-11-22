@@ -34,12 +34,13 @@ wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
 # max speed
-s_max_mps = 0.5         # [m/s]
-omega_max = 5           # [rad/s]
+s_max_mps = 1.0         # [m/s]   max speed of vehicle
+omega_max = 5           # [rad/s] max omega of vehicle
+omega_motor_max = 40    # [rad/s] max omega of motors
 
 # proportional controllers
-kp_speed = 0.001
-kp_heading = 0.01 # 0.01 worked well with pixel as heading
+kp_speed = 0.0015 # 0002 good in isolation
+kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 #kp_speed = 0
 #kp_heading = 0
 
@@ -47,11 +48,12 @@ kp_heading = 0.01 # 0.01 worked well with pixel as heading
 dist_mm =  0
 head_px =  0
 head_rad = 0
+markers = []
 
 # control timer
 # t_controller =
 
-follow_dist_mm = 250
+follow_dist_mm = 300 # nose: 250 // center: 300,
 
 # set camera specs
 wp = 640
@@ -112,13 +114,20 @@ pipeline.start(config)
         # cmd_l = command_l,
         # cmd_r = command_r))
 
-print("Dist [mm], Head [rad], s_des [m/s], omega_l_des [rad/s], omega_r_des [rad/s]")
+print("Dist [mm], Head [rad], s_des [m/s], omega_des [rad/s], omega_l_des [rad/s], omega_r_des [rad/s]")
         # d = dist_mm,
         # h = head_px,
         # s = s_des,
         # o_d = omega_des,
         # o_l = omega_l_des,
         # o_r = omega_r_des,))
+
+head_rad = 0
+head_px = 0
+s_des = 0
+omega_des = 0
+omega_l_des = 0
+omega_r_des = 0
 
 # initialize command values
 command_l = 0
@@ -127,9 +136,12 @@ command_r = 0
 # this will trick the dist_error_mm to initialize to 0
 dist_mm = follow_dist_mm
 
+
+# standby_flag = True
+
 while True:
     # get images (depth and color) from camera
-    image_pair = vision.get_curr_frame(pipeline)
+    image_pair = vision.get_aligned_frame(pipeline)
     depth_image = image_pair[1]
     color_image = image_pair[0]
 
@@ -138,7 +150,7 @@ while True:
     theta_fov_depth = math.radians(87)
 
     # detect markers in images
-    markers = vision.detect_aruco(image_pair, (10, 2), visualize=False)
+    markers = vision.detect_aruco(image_pair, visualize=False)
         # id = markers[0][0],   id,       [-]
         # x = markers[0][1][0], y,        [px]
         # y = markers[0][1][1], x,        [px]
@@ -150,13 +162,16 @@ while True:
         markers = np.asarray(markers)
 
         # if multiple markers detected (e.g. marker on back of leader and side of leader)
-        # then take the average position of them
+        # then take the average and min position of them
         markers_avg = np.mean(markers, axis=0)
+        markers_min = np.min(markers, axis=0)
 
         # extract distance and heading detected in image
         # flip sign of heading so that targ to right gives (-),
         #   and targ to left give (+)
-        dist_mm = markers_avg[3]    # distance to aruco [mm]
+        # taking MINIMUM distance to avoid lurching when additional markers are detected
+        # taking AVERAGE heading to help steer... may need to change this to min as well? needs testing
+        dist_mm = markers_min[3]    # distance to aruco [mm]
         head_px = -1*markers_avg[4] # heading to aruco  [px]
 
         # need to do some tomfoolery to convert from pixel heading to radian heading:
@@ -166,39 +181,66 @@ while True:
         # finally, px2rad spits out array, so need to unwrap to just a float by indexing first value [0]
         head_rad = px2rad(np.array([head_px+wp/2]), wp, theta_fov_depth)[0]
 
-    # else:
-        # print('no markers detected')
+        ####################################################
+        #            outer loop controller                 #
+        ####################################################
+        # apply proportional controller to desired speed
+        dist_error_mm = dist_mm - follow_dist_mm
+        s_des = dist_error_mm*kp_speed
 
-    ####################################################
-    #            outer loop controller                 #
-    ####################################################
-    # apply proportional controller to desired speed
-    dist_error_mm = dist_mm - follow_dist_mm
-    s_des = dist_error_mm*kp_speed
+        # apply proportional controller to desired omega
+        omega_des = head_px*kp_heading
+        # omega_des = head_rad*kp_heading
 
-    # apply proportional controller to desired omega
-    omega_des = head_px*kp_heading
-    # omega_des = head_rad*kp_heading
+        # apply max cutoff to desired speed and omega
+        s_des = min(s_des, s_max_mps)
+        omega_des = min(omega_des, omega_max)
 
-    # apply max cutoff to desired speed and omega
-    s_des = min(s_des, s_max_mps)
-    omega_des = min(omega_des, omega_max)
+        # compute desired motor speeds
+        omega_l_des = (s_des - omega_des*wheel_base_m/2) / tire_radius_m
+        omega_r_des = (s_des + omega_des*wheel_base_m/2) / tire_radius_m
 
-    # comptue desired motor speeds
-    omega_l_des = (s_des - omega_des*wheel_base_m/2) / tire_radius_m
-    omega_r_des = (s_des + omega_des*wheel_base_m/2) / tire_radius_m
+        # apply max cutoff to motor speed (keep vehicle from running away)
+        omega_l_des = min(omega_l_des, omega_motor_max)
+        omega_r_des = min(omega_r_des, omega_motor_max)
 
-    ####################################################
-    #            send actuator commands                #
-    ####################################################
-    # if commands are both numbers (NOT NaNs), then send build and send commands
-    if not isnan(omega_l_des) and not isnan(omega_r_des):
+        ####################################################
+        #            send actuator commands                #
+        ####################################################
+        # if commands are both numbers (NOT NaNs), then send build and send commands
+        if not isnan(omega_l_des) and not isnan(omega_r_des):
+            # if motors are on standby, take them off standby
+            # if standby_flag == True:
+            #     messenger.send_msg(ser,'<S,0>')
+            #     standby_flag = False
+
+            # make command strings
+            command_l = '<L, ' + '%.3f'%omega_l_des + '>'
+            command_r = '<R, ' + '%.3f'%omega_r_des + '>'
+            # send commands
+            messenger.send_msg(ser,command_l)
+            messenger.send_msg(ser,command_r)
+
+    else: # if no markers are detected
         # make command strings
-        command_l = '<L, ' + '%.3f'%omega_l_des + '>'
-        command_r = '<R, ' + '%.3f'%omega_r_des + '>'
+        command_l = '<L,0>'
+        command_r = '<R,0>'
         # send commands
         messenger.send_msg(ser,command_l)
         messenger.send_msg(ser,command_r)
+
+        # if no markers detected, then trick controller into stopping
+        s_des = 0
+        omega_des = 0
+        omega_l_des = 0
+        omega_r_des = 0
+
+        # dist_mm = follow_dist_mm
+        # head_px = 0
+
+        # if standby_flag == False:
+        #     messenger.send_msg(ser,'<S,1>')
+        #     standby_flag = True
 
     ####################################################
     #                 print outputs                    #
@@ -218,10 +260,11 @@ while True:
 
     # CSV FORMAT
     ################################
+    # if standby_flag == False:
     print("{d:.2f}, {h:.4f},   {s:5.2f}, {o_d:5.2f},   {o_l:5.2f}, {o_r:5.2f}".format(
         d = dist_mm,
-        # h = head_rad,
-        h = head_px,
+        h = head_rad,
+        # h = head_px,
         s = s_des,
         o_d = omega_des,
         o_l = omega_l_des,
