@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 ##################################################################
 #                            phase 1                             #
 ##################################################################
-'''
+
 phase1_df = pd.read_csv('24-11-11_PI-tune_PHASE-1_I0_P-varied.csv',
                         header=1,
                         sep=',')
@@ -29,7 +29,7 @@ plt.ylim([0,30])
 plt.xlabel('Time [s]')
 plt.ylabel('Motor Speed [rad/s]')
 plt.title('Phase 1: Proportional Tuning')
-plt.legend()
+plt.legend(loc='upper left')
 plt.show()
 
 
@@ -55,6 +55,7 @@ plt.show()
 ####################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 1: Proportional Tuning")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 axs[0,0].plot(time,kp_4,label='KP=4')
@@ -97,6 +98,7 @@ plt.show()
 ####################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 1: Proportional Tuning")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 axs[0,0].plot(time,kp_6,label='KP=6')
@@ -218,6 +220,7 @@ plt.show()
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 2: Integral Tuning, KP=8")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 ki = 'KI=0.01'
@@ -261,6 +264,7 @@ plt.show()
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 2: Integral Tuning, KP=8")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 ki = 'KI=0.06'
@@ -304,6 +308,7 @@ plt.show()
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 2: Integral Tuning, KP=8")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 ki = 'KI=0.07'
@@ -346,7 +351,7 @@ axs[1,1].set_xlabel('Time [s]')
 axs[1,1].legend(loc="upper left")
 
 plt.show()
-'''
+
 
 ##################################################################
 #                            phase 3                             #
@@ -397,6 +402,7 @@ plt.show()
 ######################
 
 fig, axs = plt.subplots(1,2,figsize=(9,4))
+fig.suptitle("Phase 3: Integral Detuning, KI=0.08")
 
 axs[0].plot(time,omega_des,label='Setpoint')
 for gain in gains_subset:
@@ -424,6 +430,7 @@ plt.show()
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 3: Integral Detuning, KI=0.08")
 
 axs[0,0].plot(time,omega_des,label='Setpoint')
 KP = 'KP=0.5'
