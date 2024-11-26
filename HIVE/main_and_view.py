@@ -34,9 +34,15 @@ wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
 # max speed
-s_max_mps = 0.66        # [m/s]   max speed of vehicle
+s_max_mps = 0.66        # [m/s] max speed of vehicle (s/radius = omega)
+                        # 0.77 m/s -> 35 rad/s (near max speed of tank)
+                        # 0.66 m/s (1.46 mph) -> 30 rad/s (0.66/0.022)
+                        # 0.55 m/s (1.23 mph) -> 25 rad/s
+                        # 0.33 m/s (0.98 mph) -> 20 rad/s
 omega_max = 4           # [rad/s] max omega of vehicle
+                        
 omega_motor_max = 35    # [rad/s] max omega of motors
+                        # 35 rad/s corresponds to nearly full actuation effort
 
 # proportional controllers
 kp_speed = 0.0015 # 0.002 good in isolation

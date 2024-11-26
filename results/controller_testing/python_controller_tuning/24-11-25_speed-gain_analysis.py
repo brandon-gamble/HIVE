@@ -55,13 +55,40 @@ for this_dic in [short_dic, long_dic]:
         my_label = 'Ks=0.' + key
         plt.plot(this_dic[key][0],this_dic[key][1],label=my_label)
 
-    for key in this_dic:
-        my_label = 'Ks=0.' + key
-        plt.plot(this_dic[key][0],this_dic[key][1],label=my_label)
-
 plt.xlim([0.8,10])
 plt.ylim([-250,1250])
 plt.xlabel('Time [s]')
 plt.ylabel('Distance [mm]')
 plt.title('Speed gain, short and long steps')
+plt.show()
+
+# side by side
+#################################################
+
+this_dic = short_dic
+plt.figure(figsize=(11,4.8))
+plt.subplot(1,2,1)
+for key in this_dic:
+    my_label = 'Ks=0.' + key
+    plt.plot(this_dic[key][0],this_dic[key][1],label=my_label)
+plt.xlim([0.8,10])
+plt.ylim([-250,1250])
+plt.xlabel('Time [s]')
+plt.ylabel('Distance [mm]')
+plt.title('Short Step (250 mm)')
+plt.legend()
+
+this_dic = long_dic
+plt.subplot(1,2,2)
+for key in this_dic:
+    my_label = 'Ks=0.' + key
+    plt.plot(this_dic[key][0],this_dic[key][1],label=my_label)
+plt.xlim([0.8,10])
+plt.ylim([-250,1250])
+plt.xlabel('Time [s]')
+#plt.ylabel('Distance [mm]')
+plt.title('Long Step (1000 mm)')
+plt.legend()
+
+plt.suptitle('Speed Gain')
 plt.show()
