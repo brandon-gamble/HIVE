@@ -470,7 +470,28 @@ axs[1,1].set_title(KP)
 
 plt.show()
 
-# overlay initlal and final
+###########################################
+#             FINAL COMPARISON            #
+###########################################
+
+# overlay initial and final
+######################
+plt.plot(time, omega_des, label='Setpoint')
+
+gains_subset = [gains[6],gains[1]]
+
+for gain in gains_subset:
+    plt.plot(time,phase3_df[gain],label=gain)
+
+plt.xlim([0,25])
+plt.ylim([-15,30])
+plt.xlabel('Time [s]')
+plt.ylabel('Motor Speed [rad/s]')
+plt.title('Phase 3: Integral Detuning, KI=0.08')
+plt.legend()
+plt.show()
+
+# overlay initial and final
 ######################
 plt.plot(time, omega_des, label='Setpoint')
 

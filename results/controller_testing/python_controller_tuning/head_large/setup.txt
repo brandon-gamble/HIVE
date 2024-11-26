@@ -1,0 +1,7 @@
+for large rotation, insert the following line just below the line where head_rad is calculated:
+
+# TEMP ADJUSTMENT TEMPORARY REMOVE FLAG
+head_rad = head_rad + math.radians(15)
+
+
+target is then placed offset to the right of tank. by offsetting heading, we are able to accomplish larger step than 1/2 FOV. 
