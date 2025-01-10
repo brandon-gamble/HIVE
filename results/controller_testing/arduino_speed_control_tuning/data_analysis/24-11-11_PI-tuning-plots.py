@@ -150,7 +150,7 @@ phase2_array = phase2_df.values
 time = phase2_array[:,0]
 omega_des = phase2_array[:,1]
 
-# single initial plot
+# single initial plot, ki=0.01
 #####################
 
 plt.plot(time, omega_des, label='Setpoint')
@@ -216,7 +216,117 @@ plt.title('Phase 2: Integral Tuning, KP=8')
 plt.legend()
 plt.show()
 
-# subplot
+# overlay limited subplot full view / zoom
+############################################
+
+
+
+# subplot of 25, 50, 70, 100 ( COARSE ) 
+# zoomed in 
+######################
+xlo = 14
+xhi = 21
+ylo = 20
+yhi = 30
+fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 2: Integral Tuning, KP=8")
+
+axs[0,0].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.025'
+axs[0,0].plot(time,phase2_df[ki],label=ki)
+axs[0,0].set_xlim([xlo,xhi])
+axs[0,0].set_ylim([ylo,yhi])
+#axs[0,0].set_xlabel('Time [s]')
+axs[0,0].set_ylabel('Motor Speed [rad/s]')
+#axs[0,0].set_title(ki)
+axs[0,0].legend(loc="upper left")
+
+axs[0,1].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.05'
+axs[0,1].plot(time,phase2_df[ki],label=ki)
+axs[0,1].set_xlim([xlo,xhi])
+axs[0,1].set_ylim([ylo,yhi])
+#axs[0,1].set_xlabel('Time [s]')
+#axs[0,1].set_ylabel('Motor Speed [rad/s]')
+#axs[0,1].set_title(ki)
+axs[0,1].legend(loc="upper left")
+
+axs[1,0].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.07'
+axs[1,0].plot(time,phase2_df[ki],label=ki)
+axs[1,0].set_xlim([xlo,xhi])
+axs[1,0].set_ylim([ylo,yhi])
+axs[1,0].set_xlabel('Time [s]')
+axs[1,0].set_ylabel('Motor Speed [rad/s]')
+#axs[1,0].set_title(ki)
+axs[1,0].legend(loc="upper left")
+
+axs[1,1].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.1'
+axs[1,1].plot(time,phase2_df[ki],label=ki)
+axs[1,1].set_xlim([xlo,xhi])
+axs[1,1].set_ylim([ylo,yhi])
+axs[1,1].set_xlabel('Time [s]')
+#axs[1,1].set_ylabel('Motor Speed [rad/s]')
+#axs[1,1].set_title(ki)
+axs[1,1].legend(loc="upper left")
+
+plt.show()
+
+
+# subplot of 70, 80, 90, 100 ( FINE ) 
+# zoomed in 
+######################
+#xlo = 14   <- these will be taken from the plot above
+#xhi = 21      so that axes are consistent
+#ylo = 20
+#yhi = 30
+fig, axs = plt.subplots(2,2,figsize=(9,7))
+fig.suptitle("Phase 2: Integral Tuning, KP=8")
+
+axs[0,0].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.07'
+axs[0,0].plot(time,phase2_df[ki],label=ki)
+axs[0,0].set_xlim([xlo,xhi])
+axs[0,0].set_ylim([ylo,yhi])
+#axs[0,0].set_xlabel('Time [s]')
+axs[0,0].set_ylabel('Motor Speed [rad/s]')
+#axs[0,0].set_title(ki)
+axs[0,0].legend(loc="upper left")
+
+axs[0,1].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.08'
+axs[0,1].plot(time,phase2_df[ki],label=ki)
+axs[0,1].set_xlim([xlo,xhi])
+axs[0,1].set_ylim([ylo,yhi])
+#axs[0,1].set_xlabel('Time [s]')
+#axs[0,1].set_ylabel('Motor Speed [rad/s]')
+#axs[0,1].set_title(ki)
+axs[0,1].legend(loc="upper left")
+
+axs[1,0].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.09'
+axs[1,0].plot(time,phase2_df[ki],label=ki)
+axs[1,0].set_xlim([xlo,xhi])
+axs[1,0].set_ylim([ylo,yhi])
+axs[1,0].set_xlabel('Time [s]')
+axs[1,0].set_ylabel('Motor Speed [rad/s]')
+#axs[1,0].set_title(ki)
+axs[1,0].legend(loc="upper left")
+
+axs[1,1].plot(time,omega_des,label='Setpoint')
+ki = 'KI=0.1'
+axs[1,1].plot(time,phase2_df[ki],label=ki)
+axs[1,1].set_xlim([xlo,xhi])
+axs[1,1].set_ylim([ylo,yhi])
+axs[1,1].set_xlabel('Time [s]')
+#axs[1,1].set_ylabel('Motor Speed [rad/s]')
+#axs[1,1].set_title(ki)
+axs[1,1].legend(loc="upper left")
+
+plt.show()
+
+# subplot of lows
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
@@ -260,7 +370,7 @@ axs[1,1].set_title(ki)
 
 plt.show()
 
-# subplot
+# subplot of mids 6,7,8,9
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
@@ -304,7 +414,7 @@ axs[1,1].set_title(ki)
 
 plt.show()
 
-# subplot
+# subplot highs 7,8,9,10
 ######################
 
 fig, axs = plt.subplots(2,2,figsize=(9,7))
