@@ -1,4 +1,4 @@
-Left model parameters in form J/(s+K): J=2.896000 K=24.350000 
+Left model parameters in form K/(s+b): K=2.896000 b=24.350000 
 step1_time,step1_response,step2_time,step2_response,step3_time,step3_response
 4,0,8,0,12,0
 4.00378272053261,0.523269069795991,8.00378272053261,1.04653813959198,12.0037827205326,2.09307627918396
