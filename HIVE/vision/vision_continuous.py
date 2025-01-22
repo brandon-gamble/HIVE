@@ -334,8 +334,9 @@ def main():
     1   detect with cloud average
     2   detect with no cloud average
     3   coordinate adjustment for camera position
+    4   realsense distance accuracy test ************************
     '''
-    test_case = 3
+    test_case = 4
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -391,6 +392,66 @@ def main():
                     hr = marker[4],
                     hd = marker[4]*180/3.14))
             input()
+
+        elif test_case == 4:
+            num_datapoints = 100 # number of data points per test distance
+
+            #######################
+            # CALIBRATION ROUTINE #
+            #######################
+            # enter distance used to zero camera position
+            print("200mm is best calibration distance.")
+            calibration_dist = input("Enter Calibration Distance [mm]: ")
+            print("Beginning Calibration Routine...")
+            print("Move camera to zero error position")
+            try:
+                while True:
+                    image_pair = get_aligned_frame(pipeline)
+                    markers = detect_aruco(image_pair, visualize=False,
+                                           camera_location=[0,0])
+                    if markers:
+                        measured_dist = markers[0][3]
+                        error = float(calibration_dist) - measured_dist
+                        print("Error [mm]: " + str(error))
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+            ###############
+            # GATHER DATA #
+            ###############
+            print("")
+            print("Beginning Precision Test...")
+            print("-----------------------------------------")
+            print("True Dist [mm], Meas Dist [mm], Error [%]")
+            print("-----------------------------------------")
+            try:
+                while True:
+                    true_dist = float(input("Enter True Distance [mm]: "))
+                    datapoints_recorded = 0
+                    while datapoints_recorded < num_datapoints:
+                    # for x in range(num_datapoints):
+                        image_pair = get_aligned_frame(pipeline)
+                        markers = detect_aruco(image_pair, visualize=False,
+                                               camera_location=[0,0])
+                        if markers:
+                            measured_dist = markers[0][3]
+
+                            pct_error = (measured_dist - true_dist)/true_dist*100
+
+                            print("{td:.2f}, {md:.2f}, {pe:.4f}".format(
+                                td = true_dist,
+                                md = measured_dist,
+                                pe = pct_error,))
+
+                            datapoints_recorded += 1
+
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Precision Test Complete")
+
 
     # Stop streaming
     pipeline.stop()
