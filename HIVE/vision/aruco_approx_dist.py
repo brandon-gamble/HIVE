@@ -395,6 +395,8 @@ def main():
     '''
     1   original implementation
     2   "simplified" equation compared to original - should be EQUAL
+    3   distance accuracy comparison bt pixel approx and RS measuremtn
+            (from vision_continuous case 4)
     '''
     test_case = 1
 
@@ -414,7 +416,8 @@ def main():
     while True:
         if test_case == 1:
             # marker_size = 37.5 # mm
-            marker_size = 38.5 # mm
+            marker_size = 45 # mm ()
+            marker_size = 29.5#38.5 # mm ()
 
             image_pair = get_aligned_frame(pipeline)
             markers = detect_aruco(image_pair, visualize=False)
@@ -451,6 +454,70 @@ def main():
 
             # input()
 
+        if test_case == 3:
+            num_datapoints = 100 # number of data points per test distance
+            marker_size = 38.5
+            marker_size = 45
+            marker_size = 29
+            #######################
+            # CALIBRATION ROUTINE #
+            #######################
+            # enter distance used to zero camera position
+            print("200mm is best calibration distance.")
+            calibration_dist = input("Enter Calibration Distance [mm]: ")
+            print("Beginning Calibration Routine...")
+            print("Move camera to zero error position")
+            try:
+                while True:
+                    image_pair = get_aligned_frame(pipeline)
+                    markers = detect_aruco(image_pair, visualize=False)
+                    if markers:
+                        measured_dist = markers[0][3]
+                        error = float(calibration_dist) - measured_dist
+                        print("Error [mm]: " + str(error))
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+            ###############
+            # GATHER DATA #
+            ###############
+            print("")
+            print("Beginning Precision Test...")
+            print("-----------------------------------------")
+            print("True Dist [mm], Pixel Approx Dist [mm], Pixel Error [%], RS Meas Dist [mm], RS Error [%]")
+            print("-----------------------------------------")
+            try:
+                while True:
+                    true_dist = float(input("Enter True Distance [mm]: "))
+                    datapoints_recorded = 0
+                    while datapoints_recorded < num_datapoints:
+                    # for x in range(num_datapoints):
+                        image_pair = get_aligned_frame(pipeline)
+                        markers = detect_aruco(image_pair, visualize=False)
+                        if markers:
+                            # realsense measured dist
+                            measured_dist = markers[0][3]
+                            pct_error_rs = (measured_dist - true_dist)/true_dist*100
+
+                            # pixel size approx dist
+                            rough_dist = approx_dist(image_pair, 1.518, marker_size, markers[0])
+                            pct_error_px = (rough_dist - true_dist)/true_dist*100
+
+                            print("{td:.2f}, {pxd:.2f}, {pxerror:.4f}, {rsd:.2f}, {rserror:.4f}".format(
+                                td = true_dist,
+                                pxd = rough_dist,
+                                pxerror = pct_error_px,
+                                rsd = measured_dist,
+                                rserror = pct_error_rs))
+
+                            datapoints_recorded += 1
+
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Precision Test Complete")
     # Stop streaming
     pipeline.stop()
     print("Stream stopped")
