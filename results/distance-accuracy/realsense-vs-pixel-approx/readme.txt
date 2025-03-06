@@ -7,3 +7,8 @@ and
 D:\all my files\documents\uvm\5_masters\hive\github_directory\results\distance-accuracy\aruco_approx_dist
 
 use the original aruco_approx_dist_2.xlsx data
+
+**********
+^^ i think this is because theta pov is wrong!! 
+advertised as 87 deg on spec sheet, but 
+experimentally the depth fov is actually 81.15 deg

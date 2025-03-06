@@ -336,7 +336,7 @@ def main():
     3   coordinate adjustment for camera position
     4   realsense distance accuracy test ************************
     '''
-    test_case = 4
+    test_case = 3
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -380,7 +380,7 @@ def main():
 
         elif test_case == 3:
             image_pair = get_aligned_frame(pipeline)
-            markers = detect_aruco(image_pair, visualize=False,
+            markers = detect_aruco(image_pair, visualize=True,
                                    camera_location=[0,0])
 
             for marker in markers:
