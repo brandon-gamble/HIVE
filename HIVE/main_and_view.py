@@ -84,7 +84,7 @@ print('')
 print('max speed [m/s]:   ' + str(s_max_mps))
 print('omega max [rad/s]: ' + str(omega_max))
 print('')
-print('camera offset (fwd,horiz) [mm]: (' + str(cam_loc[0]) + ', ' + str(cam_loc[1]) + ')')
+print('camera offset (horiz,fwd) [mm]: (' + str(cam_loc[0]) + ', ' + str(cam_loc[1]) + ')')
 print('')
 print('follow dist [mm]:  ' + str(follow_dist_mm))
 print('')
@@ -231,7 +231,7 @@ try:
             dist_mm = 0
             head_rad = 0
 
-        '''
+        #'''
         #######################################################################################
         # put together view window #
         #######################################################################################
@@ -269,7 +269,7 @@ try:
         k = cv2.waitKey(1) & 0xFF # escape key to stop
         if k == 27:
             break
-        '''
+        #'''
 
         end = time.time()
         elapsed = end-start
@@ -294,6 +294,7 @@ finally:
     messenger.send_msg(ser,command_l)
     messenger.send_msg(ser,command_r)
     messenger.send_msg(ser,'<S,1>')
+    print("Motors zeroed and on standby.")
 
     print("HIVE stopped.")
     # Stop streaming
