@@ -33,19 +33,23 @@ from mapping import px2rad
 wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
+# m/s   ft/s  mph  rad/s
+# ----------------------
+# 0.77  2.52  1.72  35 (near max)
+# 0.66  2.16  1.48  30
+# 0.55  1.80  1.23  25
+# 0.33  1.08  0.74  20
+# ----------------------
 # max speed
 s_max_mps = 0.66        # [m/s] max speed of vehicle (s/radius = omega)
-                        # 0.77 m/s -> 35 rad/s (near max speed of tank)
-                        # 0.66 m/s (1.46 mph) -> 30 rad/s (0.66/0.022)
-                        # 0.55 m/s (1.23 mph) -> 25 rad/s
-                        # 0.33 m/s (0.98 mph) -> 20 rad/s
 omega_max = 4           # [rad/s] max omega of vehicle
-                        
+
 omega_motor_max = 35    # [rad/s] max omega of motors
                         # 35 rad/s corresponds to nearly full actuation effort
 
 # proportional controllers
 kp_speed = 0.0015 # 0.002 good in isolation
+kp_speed = 0.0020
 
 ####kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 kp_heading = 6 # 10 good in isolation (with radian heading)
