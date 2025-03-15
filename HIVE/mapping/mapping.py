@@ -20,7 +20,7 @@ need to flip origin of image
     ** zero pixels result from "shadow" so instead of averaging to defeat zeros,
     ** need to IGNORE zeros.
 '''
-######################################
+################s######################
 def get_curr_frame(pipeline):
     # Wait for a coherent pair of frames: depth and color
     frames = pipeline.wait_for_frames()
@@ -505,7 +505,7 @@ def filter_obstacles(
     # theta_array = theta_array[]
     # pitch_pair_array = pitch_pair_array[]
     # dist_pair_array = dist_pair_array[]
-
+    #          0           1                2              3              4
     return face_array, theta_array, pitch_pair_array, dist_pair_array, yaw_array
 
 def main():
@@ -537,7 +537,7 @@ def main():
     18  (static) filtered obstacles -> max/min yaw (in order to go around)
     19  (dynamic) get obstacle bounds (yaw i.e. left/right) and print which way you want to turn
     '''
-    test_case = 18
+    test_case = 19
     print("**************************")
     print("*      TEST CASE " + str(test_case) + "      *")
     print("**************************")
