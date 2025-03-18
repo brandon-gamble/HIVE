@@ -52,10 +52,10 @@ omega_motor_max = 35    # [rad/s] max omega of motors
                         # 35 rad/s corresponds to nearly full actuation effort
 
 # proportional controllers
-kp_speed = 0.0015 # 0.002 good in isolation
+# kp_speed = 0.0015 # 0.002 good in isolation
 kp_speed = 0.0020
 
-####kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
+#kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 kp_heading = 6 # 10 good in isolation (with radian heading)
 #kp_heading = 10
 
@@ -69,12 +69,21 @@ head_rad = 0
 markers = []
 
 follow_dist_mm = 500 # nose: 250 // center: 300,
-#follow_dist_mm = 300
+
 
 # set camera specs
 wp = 640
 theta_fov_depth = math.radians(87)
 cam_loc = [-25,105] # sideways,forward displacement of camera (right +,fwd +)
+
+
+#############
+kp_speed = 0.000
+kp_heading = 0
+s_max_mps=0.35
+# follow_dist_mm = 500
+theta_fov_depth = math.radians(81)
+#############
 
 ####################################################
 #               start serial comm                  #
@@ -108,7 +117,7 @@ print('***************************')
 #############################################################################################
 
 
-cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+cv2.namedWindow('HIVE Video Feeds: Raw RGB, Aligned RGB, Depth', cv2.WINDOW_AUTOSIZE)
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -154,7 +163,7 @@ try:
 
         # set camera specs
         wp = 640
-        theta_fov_depth = math.radians(87)
+        theta_fov_depth = math.radians(81)
 
         # detect markers in images
         markers_list = vision.detect_aruco(image_pair,
@@ -206,7 +215,7 @@ try:
             #   3) send final omega l/r to LCMA
 
             num_slices = 90
-            print("looking for obs")
+            # print("looking for obs")
             obstacle_data = find_obstacles(
                 depth_image,
                 num_slices=num_slices,
@@ -221,7 +230,7 @@ try:
             # yaw gives side-to-side location
 
             try:
-                print("filtering obs")
+                # print("filtering obs...")
                 filtered_obstacles = filter_obstacles(
                     obstacle_data,
                     thresh_face_angle=math.radians(135),
@@ -230,31 +239,97 @@ try:
                     # only keep things within 80% of the distance of
                     # the currnelty seen marker
                     # thresh_distance=dist_error_mm*0.8,
-                    thresh_distance=400,
+                    thresh_distance=500,
                     visualize=False
                     )
-
+                print("...obstacles filtered:")
                 obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
+                obstacle_pitch_bounds = filtered_obstacles[2][0]
                 obstacle_center = np.average(obstacle_yaw_bounds)
+                obstacle_min_dist = np.min(filtered_obstacles[3])
 
-                k_avoid = 5
-                o_old = omega_des
-                omega_des = omega_des*obstacle_center*k_avoid
-                print("omega_des old/new: {old:6.5f}, {new:6.5f}".format(old=o_old,new=omega_des))
+                # omega_des = omega_des*obstacle_center*k_avoid
+                # print("omega_des old/new: {old:6.5f}, {new:6.5f}".format(old=o_old,new=omega_des))
+
+                # "radius of safety" to put around obstacle edge
+                # at minimum should be the half width of tank
+                r_s = wheel_base_m*1000*0.5
+                r_s = wheel_base_m*1000*0.35
+                # r_s = 5
+
+                # angle between edge of object and edge of safety bubble
+                beta_s = math.asin(r_s/obstacle_min_dist)
+                # print("beta[deg]: {b:.2f}".format(b=math.degrees(beta_s)))
+
+                # dist to corner of safety bubble
+                d_s = math.sqrt(r_s**2 + obstacle_min_dist**2)
+
+                #####################
+                # display obstacle stuff
+                #####################
+                print("about to mark")
+                xpxL = int(320 + 640*math.tan(obstacle_yaw_bounds[0])/(2*math.tan(0.5*theta_fov_depth)))
+                xpxR = int(320 + 640*math.tan(obstacle_yaw_bounds[1])/(2*math.tan(0.5*theta_fov_depth)))
+                ypxT = int(240 - 480*math.tan(obstacle_pitch_bounds[0])/(2*math.tan(0.5*math.radians(58))))
+                ypxB = int(240 - 480*math.tan(obstacle_pitch_bounds[1])/(2*math.tan(0.5*math.radians(58))))
+                # cv2.circle(color_image, (xpxL, 240), 4, (0,0,255), -1)
+                # cv2.circle(color_image, (xpxR, 240), 4, (0,0,255), -1)
+                cv2.line(color_image, (xpxL,ypxT), (xpxR,ypxT), (0,0,255), 2)
+                cv2.line(color_image, (xpxR,ypxT), (xpxR,ypxB), (0,0,255), 2)
+                cv2.line(color_image, (xpxR,ypxB), (xpxL,ypxB), (0,0,255), 2)
+                cv2.line(color_image, (xpxL,ypxB), (xpxL,ypxT), (0,0,255), 2)
+
+                print("obs marked")
 
                 if obstacle_center > 0:
+                    # ^ obstacle is right of center, so turn left
                     turn_dir = "LEFT      "
-                    # add to omega_des
+
+                    # take left side bound and subtract to shift "more left"
+                    theta_s = obstacle_yaw_bounds[0]-beta_s
+
                 elif obstacle_center < 0:
+                    # ^ obstacle is left of center, so turn right
                     turn_dir = "     RIGHT"
-                    # subtract from omega_des
+
+                    # take right side bound and add to shift "more right"
+                    theta_s = obstacle_yaw_bounds[1]+beta_s
                 else:
                     turn_dir = "    x     "
 
+                # relative coordinates of point of safety
+                x_s = d_s*math.sin(theta_s)
+                y_s = d_s*math.cos(theta_s)
+                print(x_s, y_s)
 
-                print("Obstacle center: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
+                # if abs(x_s) < wheel_base_m*1000:
+                if abs(x_s) < wheel_base_m*1000/2:
+                    print("might collide! adjusting setpoints")
+                    # ^ if x coord of safety is within the wake of our forward travel
+                    # then we need to adjust our heading
+                    # (if not we can ignore obstacle)
+
+                    # apply proportional controller to desired omega
+                    # using new heading that avoids obstacle
+                    omega_des = theta_s*kp_heading
+
+                    # stop forward movement while adjusting heading
+                    s_des = 0
+
+                    # print("Obstacle center [deg]: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
+                else:
+                    print("not worried about collision")
+
+
+                # print("obs d[mm], LCR[deg]: {d:.0f}mm,{l:9.2f}{c:9.2f}{r:9.2f}".format(
+                #     d=obstacle_min_dist,
+                #     l=math.degrees(obstacle_yaw_bounds[0]),
+                #     c=math.degrees(obstacle_center),
+                #     r=math.degrees(obstacle_yaw_bounds[1])
+                # ))
+
             except:
-                print("empty array somewhere...")
+                print("no obs found...")
                 pass
 
             ####################################################
@@ -338,10 +413,10 @@ try:
                     cv2.line(img, (int(mark[11]), int(mark[12])), (int(mark[5]), int(mark[6])), (0,255,0), 2)
 
         # Stack images horizontally
-        images = np.hstack((color_unaligned,color_image, depth_colormap))
+        images = np.hstack((color_unaligned, color_image, depth_colormap))
 
         # Show images
-        cv2.imshow('RealSense', images)
+        cv2.imshow('HIVE Video Feeds: Raw RGB, Aligned RGB, Depth', images)
 
         k = cv2.waitKey(1) & 0xFF # escape key to stop
         if k == 27:
@@ -364,6 +439,7 @@ try:
             o_l = omega_l_des,
             o_r = omega_r_des,))
         '''
+        # input()
 
 finally:
     # make command strings
