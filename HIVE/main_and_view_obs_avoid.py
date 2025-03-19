@@ -30,6 +30,25 @@ from mapping import filter_obstacles
 
 #############################################################################################
 
+def plot_box(image, xLR, yTB, color, weight):
+    '''
+    xLR = [left, right] pixel bounds
+    yTB = [top, bottom] pixel bounds
+
+    color is (b,g,r)
+    std weight is 2
+    '''
+    xpxL, xpxR = xLR
+    ypxT, ypxB = yTB
+    cv2.line(image, (xpxL,ypxT), (xpxR,ypxT), color, weight)
+    cv2.line(image, (xpxR,ypxT), (xpxR,ypxB), color, weight)
+    cv2.line(image, (xpxR,ypxB), (xpxL,ypxB), color, weight)
+    cv2.line(image, (xpxL,ypxB), (xpxL,ypxT), color, weight)
+    return
+
+def rad2px(rad, px_dim, theta_fov):
+    return int(px_dim/2 - px_dim*math.tan(rad)/(2*math.tan(0.5*theta_fov)))
+
 ####################################################
 #               vehicle parameters                 #
 ####################################################
@@ -78,10 +97,10 @@ cam_loc = [-25,105] # sideways,forward displacement of camera (right +,fwd +)
 
 
 #############
-kp_speed = 0.000
-kp_heading = 0
-s_max_mps=0.35
-# follow_dist_mm = 500
+kp_speed = 0.00   # 0.002
+kp_heading = 4     # 6
+s_max_mps=0.2
+follow_dist_mm = 250
 theta_fov_depth = math.radians(81)
 #############
 
@@ -161,6 +180,18 @@ try:
         depth_image = image_pair[1]
         color_image = image_pair[0]
 
+        [color_unaligned,_] = vision.get_curr_frame(pipeline)
+
+        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+        #################
+        #  good alphas  #
+        # ------------- #
+        # 0.08 standard (all looks blue)
+        # 0.3  good depth of field
+        #################
+        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.08)
+        depth_colormap = cv2.applyColorMap(scaled_depth, cv2.COLORMAP_JET)
+
         # set camera specs
         wp = 640
         theta_fov_depth = math.radians(81)
@@ -188,6 +219,7 @@ try:
             # taking AVERAGE heading to help steer... may need to change this to min as well? needs testing
             dist_mm = markers_min[3]    # distance to aruco [mm]
             head_rad = markers_avg[4] # heading to aruco  [rad]
+            print("marker heading: {hr:.2f}".format(hr=head_rad))
 
             ## TEMP ADJUSTMENT TEMPORARY REMOVE FLAG
             #head_rad = head_rad + math.radians(15)
@@ -230,103 +262,130 @@ try:
             # yaw gives side-to-side location
 
             try:
-                # print("filtering obs...")
+                print("filtering obs...")
                 filtered_obstacles = filter_obstacles(
                     obstacle_data,
                     thresh_face_angle=math.radians(135),
                     thresh_min_face_length=40,
                     thresh_max_face_length=150,
-                    # only keep things within 80% of the distance of
+                    # only keep things within x% of the distance of
                     # the currnelty seen marker
-                    # thresh_distance=dist_error_mm*0.8,
-                    thresh_distance=500,
+                    thresh_distance=(dist_mm+cam_loc[1])*.6,
                     visualize=False
                     )
-                print("...obstacles filtered:")
+                # print("...filtered")
+
+                # to fully account for camera location, need adjust everything
+                # but for now just adjust the distance by adding the y coord of camera
+                # to the distance
                 obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
                 obstacle_pitch_bounds = filtered_obstacles[2][0]
                 obstacle_center = np.average(obstacle_yaw_bounds)
-                obstacle_min_dist = np.min(filtered_obstacles[3])
+                obstacle_min_dist = np.min(filtered_obstacles[3])+cam_loc[1]
 
-                # omega_des = omega_des*obstacle_center*k_avoid
-                # print("omega_des old/new: {old:6.5f}, {new:6.5f}".format(old=o_old,new=omega_des))
+                # print("bounds computed")
+                print("marker: {m:6.2f} obs: {o:6.2f}".format(m=dist_mm,o=obstacle_min_dist))
 
                 # "radius of safety" to put around obstacle edge
                 # at minimum should be the half width of tank
-                r_s = wheel_base_m*1000*0.5
-                r_s = wheel_base_m*1000*0.35
-                # r_s = 5
+                r_s = wheel_base_m*1000*1.2
 
                 # angle between edge of object and edge of safety bubble
                 beta_s = math.asin(r_s/obstacle_min_dist)
                 # print("beta[deg]: {b:.2f}".format(b=math.degrees(beta_s)))
+                # print("beta  found")
 
-                # dist to corner of safety bubble
-                d_s = math.sqrt(r_s**2 + obstacle_min_dist**2)
+                # expand obstacle to have margin for tank width
+                yawL_safety = obstacle_yaw_bounds[0]+beta_s
+                yawR_safety = obstacle_yaw_bounds[1]-beta_s
 
-                #####################
-                # display obstacle stuff
-                #####################
-                print("about to mark")
-                xpxL = int(320 + 640*math.tan(obstacle_yaw_bounds[0])/(2*math.tan(0.5*theta_fov_depth)))
-                xpxR = int(320 + 640*math.tan(obstacle_yaw_bounds[1])/(2*math.tan(0.5*theta_fov_depth)))
-                ypxT = int(240 - 480*math.tan(obstacle_pitch_bounds[0])/(2*math.tan(0.5*math.radians(58))))
-                ypxB = int(240 - 480*math.tan(obstacle_pitch_bounds[1])/(2*math.tan(0.5*math.radians(58))))
-                # cv2.circle(color_image, (xpxL, 240), 4, (0,0,255), -1)
-                # cv2.circle(color_image, (xpxR, 240), 4, (0,0,255), -1)
-                cv2.line(color_image, (xpxL,ypxT), (xpxR,ypxT), (0,0,255), 2)
-                cv2.line(color_image, (xpxR,ypxT), (xpxR,ypxB), (0,0,255), 2)
-                cv2.line(color_image, (xpxR,ypxB), (xpxL,ypxB), (0,0,255), 2)
-                cv2.line(color_image, (xpxL,ypxB), (xpxL,ypxT), (0,0,255), 2)
+                # dist to corner of safety bubble [mm]
+                # d_s = math.sqrt(r_s**2 + obstacle_min_dist**2)
+                # print("ds found")
 
-                print("obs marked")
+                # convert from radian bounds of obstacle to pixel bounds
+                xpxL_obs = rad2px(obstacle_yaw_bounds[0], 640, theta_fov_depth)
+                xpxR_obs = rad2px(obstacle_yaw_bounds[1], 640, theta_fov_depth)
+                ypxT_obs = rad2px(obstacle_pitch_bounds[0], 480, math.radians(58))
+                ypxB_obs = rad2px(obstacle_pitch_bounds[1], 480, math.radians(58))
 
-                if obstacle_center > 0:
-                    # ^ obstacle is right of center, so turn left
-                    turn_dir = "LEFT      "
+                #############################
+                # decide which way to turn: #
+                #############################
+                # dhL = head_rad - obstacle_yaw_bounds[0]
+                # dhR = head_rad - obstacle_yaw_bounds[1]
+                dhL = head_rad - yawL_safety
+                dhR = head_rad - yawR_safety
+                # if dh is positive, then marker is LEFT of edge
+                # if dh is negative, then marker is RIGHT of edge
+                # -----------------------------------------------
+                # if both L/R are positive, then marker is LEFT of obs and WILL NOT COLLIDE
+                # if .............negative,................RIGHT...........................
+                # if L(-) and R(+)...............obstacle is in collision path and need to avoid
+                # -----------------------------------------------
+                # i.e. if both neg or both pos, can just follow heading of marker
+                # but if have different signs then need to avoid obstacle
 
-                    # take left side bound and subtract to shift "more left"
-                    theta_s = obstacle_yaw_bounds[0]-beta_s
+                ##########################
+                # select desired heading #
+                # compute pixel bounds
+                ##########################
+                if dhL*dhR < 0:
+                    # if product is negative, then they have opposite signs
+                    # and need to avoid obstacle
+                    obstacle_color = (0,0,255) # make obstacle red
+                    if abs(dhL) > dhR:
+                        # then want to turn RIGHT
+                        head_des = yawR_safety
 
-                elif obstacle_center < 0:
-                    # ^ obstacle is left of center, so turn right
-                    turn_dir = "     RIGHT"
+                        # for visual:
+                        # left:  obstacle edge
+                        # right: expanded edge
+                        xpxL_safety = rad2px(obstacle_yaw_bounds[0], 640, theta_fov_depth)
+                        xpxR_safety = rad2px(yawR_safety, 640, theta_fov_depth)
+                    else:
+                        # want to turn left
+                        head_des = yawL_safety
 
-                    # take right side bound and add to shift "more right"
-                    theta_s = obstacle_yaw_bounds[1]+beta_s
+                        # for visual:
+                        # left:  expanded edge
+                        # right: obstacle edge
+                        xpxL_safety = rad2px(yawL_safety, 640, theta_fov_depth)
+                        xpxR_safety = rad2px(obstacle_yaw_bounds[1], 640, theta_fov_depth)
                 else:
-                    turn_dir = "    x     "
+                    # if product is positive, then obstacle is not in collision
+                    # path and we just take heading to the marker (head_rad)
+                    head_des = head_rad
 
-                # relative coordinates of point of safety
-                x_s = d_s*math.sin(theta_s)
-                y_s = d_s*math.cos(theta_s)
-                print(x_s, y_s)
+                    obstacle_color = (0,255,0) # make obstacle green
 
-                # if abs(x_s) < wheel_base_m*1000:
-                if abs(x_s) < wheel_base_m*1000/2:
-                    print("might collide! adjusting setpoints")
-                    # ^ if x coord of safety is within the wake of our forward travel
-                    # then we need to adjust our heading
-                    # (if not we can ignore obstacle)
-
-                    # apply proportional controller to desired omega
-                    # using new heading that avoids obstacle
-                    omega_des = theta_s*kp_heading
-
-                    # stop forward movement while adjusting heading
-                    s_des = 0
-
-                    # print("Obstacle center [deg]: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
-                else:
-                    print("not worried about collision")
+                    # for visual:
+                    # NO EXPANSION
+                    xpxL_safety = rad2px(obstacle_yaw_bounds[0], 640, theta_fov_depth)
+                    xpxR_safety = rad2px(obstacle_yaw_bounds[1], 640, theta_fov_depth)
 
 
-                # print("obs d[mm], LCR[deg]: {d:.0f}mm,{l:9.2f}{c:9.2f}{r:9.2f}".format(
-                #     d=obstacle_min_dist,
-                #     l=math.degrees(obstacle_yaw_bounds[0]),
-                #     c=math.degrees(obstacle_center),
-                #     r=math.degrees(obstacle_yaw_bounds[1])
-                # ))
+                # plot box around safety zone (should only extend on one side)
+                plot_box(color_image, [xpxL_safety,xpxR_safety], [ypxT_obs,ypxB_obs], (51,153,255), 2)
+                # plot box around obstacle
+                plot_box(color_image, [xpxL_obs,xpxR_obs], [ypxT_obs,ypxB_obs], obstacle_color, 2)
+
+                # recompute differentials with expanded safety box
+                dhL_safety = head_rad + yawL_safety
+                dhR_safety = head_rad + yawR_safety
+                # if dh is positive, then marker is LEFT of edge
+                # if dh is negative, then marker is RIGHT of edge
+
+                omega_des = head_des*kp_heading
+
+                print("head_mark: {hm:6.2f}, head_safe: {hs:6.2f}".format(hm=math.degrees(head_rad), hs=math.degrees(theta_s)))
+
+                print("obs d[mm], LCR[deg]: {d:.0f}mm,{l:9.2f}{c:9.2f}{r:9.2f}".format(
+                    d=obstacle_min_dist,
+                    l=math.degrees(obstacle_yaw_bounds[0]),
+                    c=math.degrees(obstacle_center),
+                    r=math.degrees(obstacle_yaw_bounds[1])
+                ))
 
             except:
                 print("no obs found...")
@@ -388,17 +447,7 @@ try:
         # put together view window #
         #######################################################################################
 
-        [color_unaligned,_] = vision.get_curr_frame(pipeline)
 
-        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-        #################
-        #  good alphas  #
-        # ------------- #
-        # 0.08 standard (all looks blue)
-        # 0.3  good depth of field
-        #################
-        scaled_depth=cv2.convertScaleAbs(depth_image, alpha=0.08)
-        depth_colormap = cv2.applyColorMap(scaled_depth, cv2.COLORMAP_JET)
 
         ###########
         # markers #
@@ -411,6 +460,22 @@ try:
                     cv2.line(img, (int(mark[7]), int(mark[8])), (int(mark[9]), int(mark[10])), (0,255,0), 2)
                     cv2.line(img, (int(mark[9]), int(mark[10])), (int(mark[11]), int(mark[12])), (0,255,0), 2)
                     cv2.line(img, (int(mark[11]), int(mark[12])), (int(mark[5]), int(mark[6])), (0,255,0), 2)
+
+        # try:
+        #     if abs(x_s) < safety_bubble:
+        #         # obs: red, safety: orange
+        #         # plot box around safety zone (should only extend on one side)
+        #         plot_box(depth_colormap, [xpxL_safety,xpxR_safety], [ypxT_obs,ypxB_obs], (51,153,255), 2)
+        #         # plot box around obstacle
+        #         plot_box(depth_colormap, [xpxL_obs,xpxR_obs], [ypxT_obs,ypxB_obs], (0,0,255), 2)
+        #     else:
+        #         plot_box(depth_colormap, [xpxL_safety,xpxR_safety], [ypxT_obs,ypxB_obs], (153, 255, 153), 2)
+        #         plot_box(depth_colormap, [xpxL_obs,xpxR_obs], [ypxT_obs,ypxB_obs], (0,255,0), 2)
+        # except:
+        #     pass
+
+        # mark center of color image
+        cv2.circle(color_image, (320,240), 2, (252,3,248), -1)
 
         # Stack images horizontally
         images = np.hstack((color_unaligned, color_image, depth_colormap))
