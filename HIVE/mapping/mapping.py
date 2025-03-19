@@ -10,6 +10,10 @@ import sys
 from scipy.signal import find_peaks
 from time import sleep
 
+# add directories and import custom "libraries"
+sys.path.append('D:/all my files/documents/uvm/5_masters/hive/github_directory/HIVE/vision/')
+import vision_continuous as vision
+
 ######################################
 '''
 need to flip origin of image
@@ -540,8 +544,9 @@ def main():
     17  look at obstacle data (filtered)
     18  (static) filtered obstacles -> max/min yaw (in order to go around)
     19  (dynamic) get obstacle bounds (yaw i.e. left/right) and print which way you want to turn
+    20  *** test accuracy of detection for results in paper
     '''
-    test_case = 18
+    test_case = 20
     print("**************************")
     print("*      TEST CASE " + str(test_case) + "      *")
     print("**************************")
@@ -1770,39 +1775,190 @@ def main():
                 print("Obstacle center: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
             except:
                 print("empty array somewhere...")
+    elif test_case == 20:
+        num_datapoints = 100
+
+        #######################
+        # CALIBRATION ROUTINE #
+        #######################
+        # enter distance used to zero camera position
+        print("CALIBRATION: place marker in FOV.")
+        calibration_dist = input("Enter Calibration Distance [in]: ")
+        print("Beginning Calibration Routine...")
+        print("Move camera to zero error position")
+        try:
+            while True:
+                image_pair = get_aligned_frame(pipeline)
+                markers = vision.detect_aruco(image_pair, visualize=False,
+                                       camera_location=[0,0])
+                if markers:
+                    measured_dist = markers[0][3]
+                    measured_head = markers[0][4]
+                    error_dist = float(calibration_dist)*25.4 - measured_dist
+                    error_head = 0 - measured_head
+                    print("Dist [mm]: {ed:3.1f}   Head [rad]: {eh:3.1f}".format(ed=error_dist, eh=error_head))
+        except KeyboardInterrupt:
+            pass
+        print("")
+        print("...Calibration Complete")
+
+        # get images
+        image_pair = get_aligned_frame(pipeline)
+        sleep(0.5)
+        # capture a second time so auto exposure has a chance to activate
+        image_pair = get_aligned_frame(pipeline)
+        depth_image = image_pair[1]
+        color_image = image_pair[0]
+
+        plot_image_2d(depth_image)
+
+        ###############
+        # GATHER DATA #
+        ###############
+        print("")
+        print("Beginning Precision Test...")
+        print("-----------------------------------------")
+        print("T is true, M is measured")
+        print("-----------------------------------------")
+        string_true =  "yaw_L_T [rad],yaw_R_T [rad],F_T [mm],D_L_T [mm],D_R_T [mm],theta_T [rad],"
+        string_meas =  "yaw_L_M [rad],yaw_R_M [rad],F_M [mm],D_L_M [mm],D_R_M [mm],theta_M [rad],"
+        string_error = "yaw_L_E [%],yaw_R_E [%],F_E [%],D_L_E [%],D_R_E [%],theta_E [%],"
+        print(string_true+string_meas+string_error)
+
+        try:
+            while True:
+                # reset datapoint counter
+                datapoints_recorded = 0
+
+                ########################################
+                # gather user input to define obstacle #
+                ########################################
+                print("Enter units in [in]. They will be converted to [mm] internally.")
+                # true (x,y) of left side of obs
+                xlt = float(input("Enter left side x coord [in]: "))*25.4
+                ylt = float(input("Enter left side y coord [in]: "))*25.4
+
+                # true (x,y) of right side of obs
+                xrt = float(input("Enter right side x coord [in]: "))*25.4
+                yrt = float(input("Enter right side y coord [in]: "))*25.4
+
+                h = float(input("Enter height of object [in]: "))*25.4
+
+                ##########################################################
+                # convert user input to parameters that will be measured #
+                ##########################################################
+                # true yaw bounds of obstacle
+                phi_l_T = -np.arctan2(xlt,ylt)
+                phi_r_T = -np.arctan2(xrt,yrt)
+
+                f_T = h # true face length of obs
+
+                # true distances of obs edges
+                d_l_T = np.sqrt(xlt**2 + ylt**2)
+                d_r_T = np.sqrt(xrt**2 + yrt**2)
+
+                # true face angle of obs
+                theta_T = math.radians(90) # assuming vertical face
+
+                ##########################
+                # start data log process #
+                ##########################
+                while datapoints_recorded < num_datapoints:
+                    # print("----- NEW SCAN -----")
+                    image_pair = get_aligned_frame(pipeline)
+                    depth_image = image_pair[1]
+
+                    num_slices = 90
+                    obstacle_data = find_obstacles(
+                        depth_image,
+                        num_slices=num_slices,
+                        theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                        search_band=[math.radians(-30),math.radians(30)],
+                        visualize = False,
+                    )
+                    # obstacle data is form:
+                    #     0          1             2                 3           4
+                    # face_list, theta_list, pitch_pair_list, dist_pair_list, yaw_list
+                    # pitch and dist pairs are [top_edge, bottom_edge]
+                    # yaw gives side-to-side location
+
+                    try:
+                        filtered_obstacles = filter_obstacles(
+                            obstacle_data,
+                            thresh_face_angle=math.radians(135),
+                            thresh_min_face_length=40,
+                            thresh_max_face_length=150,
+                            thresh_distance=775,
+                            visualize=True
+                            )
+
+                        ##############
+                        # parse data #
+                        ##############
+                        obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
+                        # obstacle_center = np.average(obstacle_yaw_bounds)
+                        dist_left  = np.average(filtered_obstacles[3][0])
+                        dist_right = np.average(filtered_obstacles[3][-1])
+                        # dist_cntr  = (dist_left+dist_right)/2
+                        face_size = np.average(filtered_obstacles[0])
+                        face_angle = np.average(filtered_obstacles[1])
+
+                        phi_l_error = (obstacle_yaw_bounds[0] - phi_l_T)/phi_l_T*100
+                        phi_r_error = (obstacle_yaw_bounds[1] - phi_r_T)/phi_r_T*100
+                        f_error = (face_size - f_T)/f_T*100
+                        d_l_error = (dist_left - d_l_T)/d_l_T*100
+                        d_r_error = (dist_right - d_r_T)/d_r_T*100
+
+                        #######################
+                        # log data to console #
+                        #######################
+                        print("{phi_l_T:6.2f}, {phi_r_T:6.2f}, {f_T:6.2f}, {d_l_T:6.2f}, {d_r_T:6.2f}, ||"
+                            "{phi_l:6.2f}, {phi_r:6.2f}, {face_size:6.2f}, {dist_left:6.2f}, {dist_right}, ||"
+                            "{phi_le:6.2f}, {phi_re:6.2f}, {fe:6.2f}, {d_le:6.2f}, {d_re:6.2f}".format(
+                            phi_l_T = phi_l_T,
+                            phi_r_T = phi_r_T,
+                            f_T = f_T,
+                            d_l_T = d_l_T,
+                            d_r_T = d_r_T,
+                            #
+                            phi_l = obstacle_yaw_bounds[0],
+                            phi_r = obstacle_yaw_bounds[1],
+                            face_size = face_size,
+                            dist_left = dist_left,
+                            dist_right = dist_right,
+                            #
+                            phi_le = phi_l_error,
+                            phi_re = phi_r_error,
+                            fe = f_error,
+                            d_le = d_l_error,
+                            d_re = d_r_error
+                            ))
+
+                        # print("{phi_le:6.2f}, {phi_re:6.2f}, {fe:6.2f}, {d_le:6.2f}, {d_re:6.2f}".format(
+                        #     phi_le = phi_l_error,
+                        #     phi_re = phi_r_error,
+                        #     fe = f_error,
+                        #     d_le = d_l_error,
+                        #     d_re = d_r_error
+                        #     ))
+                        datapoints_recorded += 1
 
 
-            # if not obstacle_data:
-            #     print("No edges detected.")
-            # else:
-            #     print("filtering potential obstacles")
-            #     filtered_obstacles = filter_obstacles(
-            #         obstacle_data,
-            #         thresh_face_angle=math.radians(135),
-            #         thresh_min_face_length=40,
-            #         thresh_max_face_length=150,
-            #         thresh_distance=500,
-            #         visualize=True
-            #         )
-            #     print("filtered")
-            #
-            #     if not filtered_obstacles:
-            #         print("No obstacles detected after filtering.")
-            #     else:
-            #         print("filtered obs detected")
-            #         obstacle_yaw_bounds = [filtered_obstacles[4][0], filtered_obstacles[4][-1]]
-            #         obstacle_center = np.average(obstacle_yaw_bounds)
-            #
-            #         if obstacle_center > 0:
-            #             turn_dir = "LEFT      "
-            #         elif obstacle_center < 0:
-            #             turn_dir = "     RIGHT"
-            #         else:
-            #             turn_dir = "x"
-            #
-            #         print("Obstacle center: {c:6.2f}, TURN {dir:s} to avoid".format(c=math.degrees(obstacle_center), dir=turn_dir))
+                    except:
+                        pass
 
-    # elif test_case ==
+        except KeyboardInterrupt:
+            pass
+        print("")
+        print("---------- Test Complete ----------")
+
+
+
+
+
+
+
+
     # elif test_case ==
     # elif test_case ==
     # elif test_case ==

@@ -193,8 +193,8 @@ try:
         depth_colormap = cv2.applyColorMap(scaled_depth, cv2.COLORMAP_JET)
 
         # set camera specs
-        wp = 640
-        theta_fov_depth = math.radians(81)
+        # wp = 640
+        # theta_fov_depth = math.radians(81)
 
         # detect markers in images
         markers_list = vision.detect_aruco(image_pair,
@@ -251,7 +251,7 @@ try:
             obstacle_data = find_obstacles(
                 depth_image,
                 num_slices=num_slices,
-                theta_fov_depth_hv=[math.radians(87),math.radians(58)],
+                theta_fov_depth_hv=[theta_fov_depth,math.radians(58)],
                 search_band=[math.radians(-30),math.radians(30)],
                 visualize = False,
             )

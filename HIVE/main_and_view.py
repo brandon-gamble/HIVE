@@ -149,8 +149,8 @@ try:
         color_image = image_pair[0]
 
         # set camera specs
-        wp = 640
-        theta_fov_depth = math.radians(87)
+        # wp = 640
+        # theta_fov_depth = math.radians(87)
 
         # detect markers in images
         markers_list = vision.detect_aruco(image_pair,
