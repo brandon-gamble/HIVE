@@ -146,7 +146,9 @@ def px2rad(px, wp, theta_fov):
     --------------------------------------------------------
     output
     --------------------------------------------------------
-    theta:     np.array  [rad]  heading of pixel
+    theta:     np.array  [rad]  heading of pixel,
+                                zero is centered
+                                +/- aligned to pixel axis
 
     '''
 
@@ -394,7 +396,9 @@ def find_obstacles(
                 theta_list.append(theta)
                 pitch_pair_list.append(pitch_pair)
                 dist_pair_list.append(dist_pair)
-                yaw_list.append(px2rad(loc, wp, theta_fov_depth_horiz))
+                # need to flip sign of yaw so that left is +, right is -
+                # to agree with top down view of tank CCW is +
+                yaw_list.append(-px2rad(loc, wp, theta_fov_depth_horiz))
 
                 if visualize == True:
                     print("slice loc: {s:4.1f}".format(s=(px2rad(loc, wp, theta_fov_depth_horiz))))
@@ -537,7 +541,7 @@ def main():
     18  (static) filtered obstacles -> max/min yaw (in order to go around)
     19  (dynamic) get obstacle bounds (yaw i.e. left/right) and print which way you want to turn
     '''
-    test_case = 19
+    test_case = 18
     print("**************************")
     print("*      TEST CASE " + str(test_case) + "      *")
     print("**************************")
@@ -1709,7 +1713,7 @@ def main():
             plt.title("Obstacle Detection, num_slices={}".format(num_slices))
             plt.xlabel("yaw [rad]")
             plt.ylabel("face size [mm]")
-            plt.xlim(-.6, 0.6)
+            plt.xlim(+0.6, -0.6)
 
             plt.show()
     elif test_case == 19:
