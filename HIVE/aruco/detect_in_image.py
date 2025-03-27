@@ -23,10 +23,11 @@ def detect_aruco_static(image_path):
     print("loading image [{}] ...".format(image_path))
     image = cv2.imread(image_path)
     # if image is large and markers are small, then may need to adjust resize value
+    print("******** IMAGE RESIZED ********")
     image = imutils.resize(image, width=600)
 
     # show image
-    cv2.imshow("image",image)
+    cv2.imshow(image_path,image)
     cv2.waitKey(0)
 
     # get parameters
@@ -48,7 +49,8 @@ def detect_aruco_static(image_path):
     #######################
 
     if len(corners) > 0: # i.e. at least 1 marker detected
-        print("markers detected")
+        print(str(len(ids)) + " markers detected.")
+        #print("markers detected")
         # flatten list
         ids = ids.flatten()
 
@@ -84,18 +86,26 @@ def detect_aruco_static(image_path):
             print("Aruco marker ID: {}".format(markerID))
 
             # show image
-            cv2.imshow("image",image)
-            cv2.waitKey(0)
+            if one_at_a_time == True:
+                cv2.imshow(image_path,image)
+                cv2.waitKey(0)
+        cv2.imshow(image_path,image)
+        cv2.waitKey(0)
 
     else:
         print("no markers detected")
 
     print("all markers displayed")
     cv2.waitKey(0)
+    path = image_path[:-4] + "_marked.png"
+    cv2.imwrite(path,image)
 
 def main():
 
     image_paths = []
+
+    global one_at_a_time
+    one_at_a_time = False
 
     ################
     # test block 1 #
@@ -103,8 +113,8 @@ def main():
     # big, high res markers on white background, some skewed
     # results: full detection
 
-    image_paths.append("detection_images/multi_tag.png")
-    image_paths.append("detection_images/multi_tag_x1.png")
+    #image_paths.append("detection_images/multi_tag.png")
+    #image_paths.append("detection_images/multi_tag_x1.png")
         # note that one marker doesn't get identified in x1
         # this is because it has been reflected -> it is not
         # supposed to be identified bc it is no longer a valid marker
@@ -118,15 +128,15 @@ def main():
     #   jpg and png both work
     #   markers not detected without white border
 
-    image_paths.append("detection_images/city.jpg")
+    #image_paths.append("detection_images/city.jpg")
         # none detected
-    image_paths.append("detection_images/city_white.png")
+    #image_paths.append("detection_images/city_white.png")
         #       all detected
-    image_paths.append("detection_images/city_white_border.png")
+    #image_paths.append("detection_images/city_white_border.png")
         #       all detected
-    image_paths.append("detection_images/city_big.png")
+    #image_paths.append("detection_images/city_big.png")
         # none detected
-    image_paths.append("detection_images/city_big_white.jpg")
+    #image_paths.append("detection_images/city_big_white.jpg")
         #       all detected
 
 
@@ -139,7 +149,7 @@ def main():
         # very thin border is detectable when a bright color
         # very thin border fails when dark (nearly black)
 
-    image_paths.append("detection_images/city_borders_colors.png")
+    #image_paths.append("detection_images/city_borders_colors.png")
         # found all but 2:
             # top L: made darkspace of marker gray
             # bot R: very thin and dark border
@@ -154,8 +164,36 @@ def main():
     #   center of the marker were not recolored to gray. therefore
     #   marker contained 2 colors.
 
-    image_paths.append("detection_images/colors.png")
+    #image_paths.append("detection_images/colors.png")
 
+
+    ####################################################
+    #                occlusion tests                   #
+    ####################################################
+
+    #image_paths.append("detection_images/occluded/occlude_00.png")
+    #image_paths.append("detection_images/occluded/occlude_01.png")
+    #image_paths.append("detection_images/occluded/occlude_02.png")
+    #image_paths.append("detection_images/occluded/20pct_01.png")
+    #image_paths.append("detection_images/occluded/20pct_02.png")
+    #image_paths.append("detection_images/occluded/20pct_03.png")
+
+    
+    #image_paths.append("detection_images/occluded/occlusion_test_10pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_20pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_25pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_30pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_35pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_40pct.png")
+    #image_paths.append("detection_images/occluded/occlusion_test_50pct.png")
+    
+    image_paths.append("detection_images/occluded/occlusion_test_10pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_20pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_25pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_30pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_35pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_40pct_fine.png")
+    image_paths.append("detection_images/occluded/occlusion_test_50pct_fine.png")
 
 
     #############

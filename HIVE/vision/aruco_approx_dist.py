@@ -386,17 +386,89 @@ def approx_dist_simp(image_pair, theta_fov, marker_size, marker):
 
     xp = abs(marker[1]-image_center_x)
 
-    dist = marker_size*yp/marker_size_px_avg*((1+(xp/yp)**2)**0.5)
-    # dist = marker_size/marker_size_px_avg*((xp**2+yp**2)**0.5)
+    # dist = marker_size*yp/marker_size_px_avg*((1+(xp/yp)**2)**0.5)
+    dist = marker_size/marker_size_px_avg*((xp**2+yp**2)**0.5)
 
     return dist
+
+def approx_dist_calib(marker, scalar, power):
+
+    # calculate side lengths
+    x1 = marker[5]
+    y1 = marker[6]
+    x2 = marker[7]
+    y2 = marker[8]
+    marker_size_px_top = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[7]
+    y1 = marker[8]
+    x2 = marker[9]
+    y2 = marker[10]
+    marker_size_px_right = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[9]
+    y1 = marker[10]
+    x2 = marker[11]
+    y2 = marker[12]
+    marker_size_px_bot = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[11]
+    y1 = marker[12]
+    x2 = marker[5]
+    y2 = marker[6]
+    marker_size_px_left = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    marker_size_px_avg = (marker_size_px_top+marker_size_px_right+marker_size_px_bot+marker_size_px_left)/4
+
+    dist = scalar * marker_size_px_avg**power
+    return dist
+
+def marker_px_size(image_pair, marker):
+
+    color_image = image_pair[0]
+    image_width = int(color_image.shape[1])
+    image_center_x = int(image_width/2)
+
+    # calculate side lengths
+    x1 = marker[5]
+    y1 = marker[6]
+    x2 = marker[7]
+    y2 = marker[8]
+    marker_size_px_top = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[7]
+    y1 = marker[8]
+    x2 = marker[9]
+    y2 = marker[10]
+    marker_size_px_right = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[9]
+    y1 = marker[10]
+    x2 = marker[11]
+    y2 = marker[12]
+    marker_size_px_bot = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    x1 = marker[11]
+    y1 = marker[12]
+    x2 = marker[5]
+    y2 = marker[6]
+    marker_size_px_left = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+    marker_size_px_avg = (marker_size_px_top+marker_size_px_right+marker_size_px_bot+marker_size_px_left)/4
+
+    return marker_size_px_avg
 
 def main():
     '''
     1   original implementation
     2   "simplified" equation compared to original - should be EQUAL
+    3   distance accuracy comparison bt pixel approx and RS measuremtn
+            (from vision_continuous case 4)
+    4   calibration of pixel approx
+            output distance and pixel size
+    5   calibration verification test
     '''
-    test_case = 1
+    test_case = 5
 
     # Configure depth and color streams
     pipeline = rs.pipeline()
@@ -414,13 +486,14 @@ def main():
     while True:
         if test_case == 1:
             # marker_size = 37.5 # mm
-            marker_size = 38.5 # mm
+            marker_size = 45 # mm ()
+            #marker_size = 29.5#38.5 # mm ()
 
             image_pair = get_aligned_frame(pipeline)
-            markers = detect_aruco(image_pair, visualize=False)
+            markers = detect_aruco(image_pair, visualize=True)
 
             for marker in markers:
-                rough_dist = approx_dist(image_pair, 1.518, marker_size, marker)
+                rough_dist = approx_dist(image_pair, 1.416, marker_size, marker)
 
                 print("{id:<3} ({x:3},{y:3}) {d:10.2f} {d_approx:11.2f} {error:14.2f} {h:10}".format(
                     id = marker[0],
@@ -435,14 +508,14 @@ def main():
 
         if test_case == 2:
             # marker_size = 37.5 # mm
-            marker_size = 38.5 # mm
+            marker_size = 45 # mm
 
             image_pair = get_aligned_frame(pipeline)
             markers = detect_aruco(image_pair, visualize=False)
 
             for marker in markers:
-                rough_dist = approx_dist(image_pair, 1.518, marker_size, marker)
-                rough_dist_2 = approx_dist_simp(image_pair, 1.518, marker_size, marker)
+                rough_dist = approx_dist(image_pair, 1.416, marker_size, marker)
+                rough_dist_2 = approx_dist_simp(image_pair, 1.416, marker_size, marker)
 
                 print("{d1:10.2f} {d2:10.2f} {e:5.2f}".format(
                     d1 = rough_dist,
@@ -450,6 +523,216 @@ def main():
                     e = abs(rough_dist-rough_dist_2)))
 
             # input()
+
+        if test_case == 3:
+            num_datapoints = 100 # number of data points per test distance
+            # marker_size = 38.5
+            marker_size = 45
+            # marker_size = 29
+            #######################
+            # CALIBRATION ROUTINE #
+            #######################
+            # enter distance used to zero camera position
+            print("200mm is best calibration distance.")
+            calibration_dist = input("Enter Calibration Distance [mm]: ")
+            print("Beginning Calibration Routine...")
+            print("Move camera to zero error position")
+            try:
+                while True:
+                    image_pair = get_aligned_frame(pipeline)
+                    markers = detect_aruco(image_pair, visualize=False)
+                    if markers:
+                        measured_dist = markers[0][3]
+                        error = float(calibration_dist) - measured_dist
+                        print("Error [mm]: " + str(error))
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+            ###############
+            # GATHER DATA #
+            ###############
+            print("")
+            print("Beginning Precision Test...")
+            print("-----------------------------------------")
+            print("True Dist [mm], Pixel Approx Dist [mm], Pixel Error [%], RS Meas Dist [mm], RS Error [%]")
+            print("-----------------------------------------")
+            try:
+                while True:
+                    true_dist = float(input("Enter True Distance [mm]: "))
+                    datapoints_recorded = 0
+                    while datapoints_recorded < num_datapoints:
+                    # for x in range(num_datapoints):
+                        image_pair = get_aligned_frame(pipeline)
+                        markers = detect_aruco(image_pair, visualize=False)
+                        if markers:
+                            # realsense measured dist
+                            measured_dist = markers[0][3]
+                            pct_error_rs = (measured_dist - true_dist)/true_dist*100
+
+                            # pixel size approx dist
+                            rough_dist = approx_dist(image_pair, 1.416, marker_size, markers[0])
+                            pct_error_px = (rough_dist - true_dist)/true_dist*100
+
+                            print("{td:.2f}, {pxd:.2f}, {pxerror:.4f}, {rsd:.2f}, {rserror:.4f}".format(
+                                td = true_dist,
+                                pxd = rough_dist,
+                                pxerror = pct_error_px,
+                                rsd = measured_dist,
+                                rserror = pct_error_rs))
+
+                            datapoints_recorded += 1
+
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Precision Test Complete")
+
+        if test_case == 4:
+            num_datapoints = 100 # number of data points per test distance
+            # marker_size = 38.5
+            marker_size = 45
+            # marker_size = 29
+            #######################
+            # CALIBRATION ROUTINE #
+            #######################
+            # enter distance used to zero camera position
+            print("200mm is best calibration distance.")
+            calibration_dist = input("Enter Calibration Distance [mm]: ")
+            print("Beginning Calibration Routine...")
+            print("Move camera to zero error position")
+            try:
+                while True:
+                    image_pair = get_aligned_frame(pipeline)
+                    markers = detect_aruco(image_pair, visualize=False)
+                    if markers:
+                        measured_dist = markers[0][3]
+                        error = float(calibration_dist) - measured_dist
+                        print("Error [mm]: " + str(error))
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+            ###############
+            # GATHER DATA #
+            ###############
+            print("")
+            print("Beginning Pixel Size Calibration Test...")
+            print("-----------------------------------------")
+            print("Marker Size: " + str(marker_size) + "mm" )
+            print("True Dist [mm], Pixel Size [px]")
+            print("-----------------------------------------")
+            try:
+                while True:
+                    true_dist = float(input("Enter True Distance [mm]: "))
+                    datapoints_recorded = 0
+                    while datapoints_recorded < num_datapoints:
+                    # for x in range(num_datapoints):
+                        image_pair = get_aligned_frame(pipeline)
+                        markers = detect_aruco(image_pair, visualize=False)
+                        if markers:
+                            # realsense measured dist
+                            measured_dist = markers[0][3]
+
+                            # pixel size approx dist
+                            # theta_fov=1.416
+                            pixel_size = marker_px_size(image_pair, markers[0])
+
+                            print("{td:.2f}, {pxs:.2f}".format(
+                                td = true_dist,
+                                pxs = pixel_size))
+
+                            datapoints_recorded += 1
+
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+        if test_case == 5:
+            num_datapoints = 100 # number of data points per test distance
+
+            ##################
+            # SPECIFICATIONS #
+            ##################
+            marker_size = 45
+            theta_fov = 1.416
+            im_width = 640
+            px_scalar = 14430
+            px_power = -0.958
+
+            #######################
+            # CALIBRATION ROUTINE #
+            #######################
+            # enter distance used to zero camera position
+            print("200mm is best calibration distance.")
+            calibration_dist = input("Enter Calibration Distance [mm]: ")
+            print("Beginning Calibration Routine...")
+            print("Move camera to zero error position")
+            try:
+                while True:
+                    image_pair = get_aligned_frame(pipeline)
+                    markers = detect_aruco(image_pair, visualize=False)
+                    if markers:
+                        measured_dist = markers[0][3]
+                        error = float(calibration_dist) - measured_dist
+                        print("Error [mm]: " + str(error))
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Calibration Complete")
+
+            ###############
+            # GATHER DATA #
+            ###############
+            print("")
+            print("Beginning Data Collection for Model Comparisons...")
+            print("aruco_approx_dist.py Test Case 5")
+            print("marker size: " + str(marker_size))
+            print("theta_fov: " + str(theta_fov))
+            print("image width: " + str(im_width))
+            print("calibrated pixel approx: d=" + str(px_scalar) + "m_px^" + str(px_power))
+            print("-----------------------------------------")
+            print("True Dist [mm], RS Meas Dist [mm], RS Error [%], Pixel Approx Dist Theoretical [mm], Pixel Theo Error [%], Pixel Approx Dist Calib [mm], Pixel Calib Error [%]")
+            print("-----------------------------------------")
+            try:
+                while True:
+                    true_dist = float(input("Enter True Distance [mm]: "))
+                    datapoints_recorded = 0
+                    while datapoints_recorded < num_datapoints:
+                    # for x in range(num_datapoints):
+                        image_pair = get_aligned_frame(pipeline)
+                        markers = detect_aruco(image_pair, visualize=False)
+                        if markers:
+                            # realsense measured dist
+                            measured_dist = markers[0][3]
+                            pct_error_rs = (measured_dist - true_dist)/true_dist*100
+
+                            # pixel size approx dist
+                            rough_dist = approx_dist_simp(image_pair, theta_fov, marker_size, markers[0])
+                            pct_error_px = (rough_dist - true_dist)/true_dist*100
+
+                            rough_dist_calib = approx_dist_calib(markers[0], px_scalar, px_power)
+                            pct_error_px_calib = (rough_dist_calib - true_dist)/true_dist*100
+
+                            print("{td:.2f}, {rsd:.2f}, {rserror:.4f}, {pxd:.2f}, {pxerror:.4f}, {pxdc:.2f}, {pxdcerror:.4f}".format(
+                                td = true_dist,
+                                rsd = measured_dist,
+                                rserror = pct_error_rs,
+                                pxd = rough_dist,
+                                pxerror = pct_error_px,
+                                pxdc = rough_dist_calib,
+                                pxdcerror = pct_error_px_calib,
+                                ))
+
+                            datapoints_recorded += 1
+
+            except KeyboardInterrupt:
+                pass
+            print("")
+            print("...Precision Test Complete")
 
     # Stop streaming
     pipeline.stop()

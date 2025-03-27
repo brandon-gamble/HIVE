@@ -41,11 +41,11 @@ legend('\omega_L [rad/s]','\omega_R [rad/s]','Location','NorthWest');
 
 %% system id results (from system identification GUI)
 
-L_J = 2.896;
-L_K = 24.35;
+L_K = 2.896;
+L_b = 24.35;
 
-R_J = 3.143;
-R_K = 24.94;
+R_K = 3.143;
+R_b = 24.94;
 
 tf_L = tf(2.896, [1, 24.35]);
 tf_R = tf(3.143, [1, 24.94]);
@@ -170,7 +170,7 @@ left_model_table.Properties.VariableNames(1:6) = {'step1_time','step1_response',
 % save to csv
 fname = strcat(date, '_left_motor_model_response.csv');
 writetable(left_model_table,fname)
-fprintf('\nLeft model parameters in form J/(s+K): J=%f K=%f \n',L_J,L_K)
+fprintf('\nLeft model parameters in form K/(s+b): K=%f b=%f \n',L_K,L_b)
 
 
 
@@ -187,7 +187,7 @@ right_model_table.Properties.VariableNames(1:6) = {'step1_time','step1_response'
 % save to csv
 fname = strcat(date, '_right_motor_model_response.csv');
 writetable(right_model_table,fname)
-fprintf('Right model parameters in form J/(s+K): J=%f K=%f \n\n',R_J,R_K)
+fprintf('Right model parameters in form K/(s+b): K=%f b=%f \n\n',R_K,R_b)
 
 fprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
 fprintf('!   Don''t forget to open your csv files    !\n')

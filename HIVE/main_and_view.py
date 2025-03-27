@@ -33,19 +33,30 @@ from mapping import px2rad
 wheel_base_m = 0.158    # [m]
 tire_radius_m = 0.022   # [m]
 
+# m/s   ft/s  mph  rad/s
+# ----------------------
+# 0.77  2.52  1.72  35 (near max)
+# 0.66  2.16  1.48  30
+# 0.55  1.80  1.23  25
+# 0.33  1.08  0.74  20
+# ----------------------
 # max speed
-s_max_mps = 0.66        # [m/s]   max speed of vehicle
+s_max_mps = 0.66        # [m/s] max speed of vehicle (s/radius = omega)
 omega_max = 4           # [rad/s] max omega of vehicle
+
 omega_motor_max = 35    # [rad/s] max omega of motors
+                        # 35 rad/s corresponds to nearly full actuation effort
 
 # proportional controllers
-kp_speed = 0.001 # 0.002 good in isolation
+kp_speed = 0.0015 # 0.002 good in isolation
+kp_speed = 0.0020
 
-#kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
+####kp_heading = .015 # 0.01, 0.015 good in isolation [with pixel heading]
 kp_heading = 6 # 10 good in isolation (with radian heading)
+#kp_heading = 10
 
 #kp_speed = 0
-kp_heading = 0
+#kp_heading = 0
 
 # feedback initialize
 dist_mm =  0
@@ -54,7 +65,7 @@ head_rad = 0
 markers = []
 
 follow_dist_mm = 500 # nose: 250 // center: 300,
-follow_dist_mm = 300
+#follow_dist_mm = 300
 
 # set camera specs
 wp = 640
@@ -77,7 +88,7 @@ print('')
 print('max speed [m/s]:   ' + str(s_max_mps))
 print('omega max [rad/s]: ' + str(omega_max))
 print('')
-print('camera offset (fwd,horiz) [mm]: (' + str(cam_loc[0]) + ', ' + str(cam_loc[1]) + ')')
+print('camera offset (horiz,fwd) [mm]: (' + str(cam_loc[0]) + ', ' + str(cam_loc[1]) + ')')
 print('')
 print('follow dist [mm]:  ' + str(follow_dist_mm))
 print('')
@@ -86,8 +97,8 @@ print('kp_speed:     ' + str(kp_speed))
 print('')
 print('***************************')
 
-print('Heading gain test. Long step (1000mm)')
-print('24 NOV 21')
+print('Heading gain test. Small step (10 deg / .17 rad)')
+print('24 NOV 25')
 print('***************************')
 
 #############################################################################################
@@ -138,8 +149,8 @@ try:
         color_image = image_pair[0]
 
         # set camera specs
-        wp = 640
-        theta_fov_depth = math.radians(87)
+        # wp = 640
+        # theta_fov_depth = math.radians(87)
 
         # detect markers in images
         markers_list = vision.detect_aruco(image_pair,
@@ -164,6 +175,9 @@ try:
             # taking AVERAGE heading to help steer... may need to change this to min as well? needs testing
             dist_mm = markers_min[3]    # distance to aruco [mm]
             head_rad = markers_avg[4] # heading to aruco  [rad]
+
+            ## TEMP ADJUSTMENT TEMPORARY REMOVE FLAG
+            #head_rad = head_rad + math.radians(15)
 
             ####################################################
             #            outer loop controller                 #
@@ -221,7 +235,7 @@ try:
             dist_mm = 0
             head_rad = 0
 
-        '''
+        #'''
         #######################################################################################
         # put together view window #
         #######################################################################################
@@ -259,18 +273,18 @@ try:
         k = cv2.waitKey(1) & 0xFF # escape key to stop
         if k == 27:
             break
-        '''
+        #'''
 
         end = time.time()
         elapsed = end-start
         #######################################################################################
         # print outputs #
         #######################################################################################
-        print("{t:.5f}, {d:.2f}, {h:.4f},   {s:5.2f}, {o_d:5.2f},   {o_l:5.2f}, {o_r:5.2f}".format(
+        print("{t:.5f}, {d:.2f}, {h:.4f},   {s:5.4f}, {o_d:5.4f},   {o_l:5.4f}, {o_r:5.4f}".format(
             t = elapsed,
             #d = dist_mm,
             d = dist_mm-follow_dist_mm,
-            h = head_rad*180/3.1415,
+            h = head_rad,#*180/3.1415,
             s = s_des,
             o_d = omega_des,
             o_l = omega_l_des,
@@ -284,6 +298,7 @@ finally:
     messenger.send_msg(ser,command_l)
     messenger.send_msg(ser,command_r)
     messenger.send_msg(ser,'<S,1>')
+    print("Motors zeroed and on standby.")
 
     print("HIVE stopped.")
     # Stop streaming
